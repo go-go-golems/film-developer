@@ -1,6 +1,8 @@
 #pragma once
 #include "movement.hpp"
 
+#define TAG_MOTOR_MOVEMENT "MotorMovement"
+
 class MotorMovement final : public AgitationMovement {
 public:
     explicit MotorMovement(Type type, uint32_t duration)
@@ -16,11 +18,12 @@ public:
             return false;
         }
 
-        DEBUG_PRINT(
-            "Executing MotorMovement: %s | Elapsed: %u/%u",
+        FURI_LOG_D(
+            TAG_MOTOR_MOVEMENT,
+            "Executing MotorMovement: %s | Elapsed: %lu/%lu",
             type == Type::CW ? "CW" : "CCW",
-            elapsed_time + 1,
-            duration);
+            (uint32_t)(elapsed_time + 1),
+            (uint32_t)duration);
 
         if(type == Type::CW) {
             motor.clockwise(true);
@@ -46,11 +49,12 @@ public:
     }
 
     void print() const override {
-        DEBUG_PRINT(
-            "MotorMovement: %s | Duration: %u ticks | Elapsed: %u | Remaining: %u",
+        FURI_LOG_D(
+            TAG_MOTOR_MOVEMENT,
+            "MotorMovement: %s | Duration: %lu ticks | Elapsed: %lu | Remaining: %lu",
             type == Type::CW ? "CW" : "CCW",
-            duration,
-            elapsed_time,
-            duration > elapsed_time ? duration - elapsed_time : 0);
+            (uint32_t)duration,
+            (uint32_t)elapsed_time,
+            (uint32_t)(duration > elapsed_time ? duration - elapsed_time : 0));
     }
 };

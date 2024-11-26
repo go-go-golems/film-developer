@@ -74,8 +74,6 @@ graph TD
 
    - After process selection, transitions to settings view
    - User adjusts push/pull and roll count in a single view
-   - Roll count uses dynamic increments for efficient selection
-   - Visual feedback of current selections
 
 3. **Settings → Main Development**
 
@@ -134,24 +132,24 @@ enum class FilmDeveloperEvent : uint32_t {
     SettingsConfirmed = 1,
     ProcessAborted = 2,
     ProcessCompleted = 3,
-    
+
     // Process Control Events
     StartProcess = 10,
     PauseProcess = 11,
     ResumeProcess = 12,
-    
+
     // User Intervention Events
     UserActionRequired = 20,
     UserActionConfirmed = 21,
-    
+
     // Timer Events
     TimerTick = 30,
     StepComplete = 31,
-    
+
     // Motor Control Events
     MotorStateChanged = 40,
     AgitationComplete = 41,
-    
+
     // Settings Events
     PushPullChanged = 50,
     RollCountChanged = 51
@@ -161,16 +159,19 @@ enum class FilmDeveloperEvent : uint32_t {
 ### Event Flow Patterns
 
 1. **Process Selection Flow**
+
    ```
    ProcessSelection View -> ProcessSelected -> App -> SettingsView
    ```
 
 2. **Settings Confirmation Flow**
+
    ```
    Settings View -> SettingsConfirmed -> App -> MainDevelopment View
    ```
 
 3. **Development Control Flow**
+
    ```
    MainDevelopment View -> StartProcess -> App -> Process Controller
    Process Controller -> TimerTick -> App -> MainDevelopment View (update display)
@@ -178,6 +179,7 @@ enum class FilmDeveloperEvent : uint32_t {
    ```
 
 4. **User Intervention Flow**
+
    ```
    Process Controller -> UserActionRequired -> App -> Confirmation Dialog
    Confirmation Dialog -> UserActionConfirmed -> App -> Process Controller
@@ -192,18 +194,21 @@ enum class FilmDeveloperEvent : uint32_t {
 ### Event Handling Responsibilities
 
 1. **Application (FilmDeveloperApp)**
+
    - Manages view transitions based on navigation events
    - Routes process control events to Process Controller
    - Updates views based on state change events
    - Manages dialog displays for user interventions
 
 2. **Process Controller**
+
    - Emits timer and step completion events
    - Triggers motor control events
    - Requests user interventions
    - Manages process state transitions
 
 3. **Views**
+
    - Emit user interaction events
    - Update display based on received state events
    - Handle view-specific input events
@@ -215,11 +220,13 @@ enum class FilmDeveloperEvent : uint32_t {
 ### Implementation Guidelines
 
 1. **Event Propagation**
+
    - Views send events up to application
    - Application routes events to appropriate handlers
    - State changes propagate down to views
 
 2. **State Updates**
+
    - All state changes should be event-driven
    - Views receive state updates through model updates
    - No direct state manipulation in views

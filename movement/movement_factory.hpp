@@ -7,6 +7,8 @@
 #include <array>
 #include <new>
 
+#define TAG_MOVEMENT_FACTORY "MovementFactory"
+
 class MovementFactory {
 public:
   static constexpr size_t MAX_MOVEMENTS = 64;
@@ -22,8 +24,8 @@ public:
 
   static AgitationMovement *createCW(uint32_t duration) {
     if (!canAllocate(sizeof(MotorMovement))) {
-      DEBUG_PRINT("Cannot allocate CW movement, need %zu bytes, have %zu",
-                  sizeof(MotorMovement), getAvailableSpace());
+      FURI_LOG_E(TAG_MOVEMENT_FACTORY, "Cannot allocate CW movement, need %lu bytes, have %lu",
+                 (uint32_t)sizeof(MotorMovement), (uint32_t)getAvailableSpace());
       return nullptr;
     }
     void *ptr = allocateMovement(sizeof(MotorMovement));
@@ -34,8 +36,8 @@ public:
 
   static AgitationMovement *createCCW(uint32_t duration) {
     if (!canAllocate(sizeof(MotorMovement))) {
-      DEBUG_PRINT("Cannot allocate CCW movement, need %zu bytes, have %zu",
-                  sizeof(MotorMovement), getAvailableSpace());
+      FURI_LOG_E(TAG_MOVEMENT_FACTORY, "Cannot allocate CCW movement, need %lu bytes, have %lu",
+                 (uint32_t)sizeof(MotorMovement), (uint32_t)getAvailableSpace());
       return nullptr;
     }
     void *ptr = allocateMovement(sizeof(MotorMovement));
@@ -46,8 +48,11 @@ public:
 
   static AgitationMovement *createPause(uint32_t duration) {
     if (!canAllocate(sizeof(PauseMovement))) {
-      DEBUG_PRINT("Cannot allocate Pause movement, need %zu bytes, have %zu",
-                  sizeof(PauseMovement), getAvailableSpace());
+      FURI_LOG_E(
+          TAG_MOVEMENT_FACTORY,
+          "Cannot allocate Pause movement, need %lu bytes, have %lu",
+          (uint32_t)sizeof(PauseMovement),
+          (uint32_t)getAvailableSpace());
       return nullptr;
     }
     void *ptr = allocateMovement(sizeof(PauseMovement));
@@ -66,8 +71,11 @@ public:
     size_t total_size = sequence_storage_size + loop_movement_size;
 
     if (!canAllocate(total_size)) {
-      DEBUG_PRINT("Cannot allocate Loop movement, need %zu bytes, have %zu",
-                  total_size, getAvailableSpace());
+      FURI_LOG_E(
+          TAG_MOVEMENT_FACTORY,
+          "Cannot allocate Loop movement, need %lu bytes, have %lu",
+          (uint32_t)total_size,
+          (uint32_t)getAvailableSpace());
       return nullptr;
     }
 
@@ -75,7 +83,7 @@ public:
         allocateMovement(sequence_storage_size));
 
     if (!sequence_storage) {
-      DEBUG_PRINT("Failed to allocate sequence storage");
+      FURI_LOG_E(TAG_MOVEMENT_FACTORY, "Failed to allocate sequence storage");
       return nullptr;
     }
 
@@ -85,7 +93,7 @@ public:
 
     void *loop_ptr = allocateMovement(loop_movement_size);
     if (!loop_ptr) {
-      DEBUG_PRINT("Failed to allocate loop movement");
+      FURI_LOG_E(TAG_MOVEMENT_FACTORY, "Failed to allocate loop movement");
       return nullptr;
     }
 
@@ -95,8 +103,11 @@ public:
 
   static AgitationMovement *createWaitUser() {
     if (!canAllocate(sizeof(WaitUserMovement))) {
-      DEBUG_PRINT("Cannot allocate WaitUser movement, need %zu bytes, have %zu",
-                  sizeof(WaitUserMovement), getAvailableSpace());
+      FURI_LOG_E(
+          TAG_MOVEMENT_FACTORY,
+          "Cannot allocate WaitUser movement, need %lu bytes, have %lu",
+          (uint32_t)sizeof(WaitUserMovement),
+          (uint32_t)getAvailableSpace());
       return nullptr;
     }
     void *ptr = allocateMovement(sizeof(WaitUserMovement));
@@ -107,21 +118,29 @@ public:
 
   static void reset() {
     current_pool_index = 0;
-    DEBUG_PRINT("Movement factory reset, %zu bytes available",
-                movement_pool.size());
+    FURI_LOG_D(
+        TAG_MOVEMENT_FACTORY,
+        "Movement factory reset, %lu bytes available",
+        (uint32_t)movement_pool.size());
   }
 
   static void printPoolStats() {
-    DEBUG_PRINT("Movement pool: %zu/%zu bytes used (%zu%% full)",
-                current_pool_index, movement_pool.size(),
-                (current_pool_index * 100) / movement_pool.size());
+    FURI_LOG_D(
+        TAG_MOVEMENT_FACTORY,
+        "Movement pool: %lu/%lu bytes used (%lu%% full)",
+        (uint32_t)current_pool_index,
+        (uint32_t)movement_pool.size(),
+        (uint32_t)((current_pool_index * 100) / movement_pool.size()));
   }
 
 private:
   static void *allocateMovement(size_t size) {
     if (current_pool_index + size > movement_pool.size()) {
-      DEBUG_PRINT("Movement pool overflow: needed %zu bytes, %zu available",
-                  size, movement_pool.size() - current_pool_index);
+      FURI_LOG_E(
+          TAG_MOVEMENT_FACTORY,
+          "Movement pool overflow: needed %lu bytes, %lu available",
+          (uint32_t)size,
+          (uint32_t)(movement_pool.size() - current_pool_index));
       return nullptr;
     }
     void *ptr = &movement_pool[current_pool_index];

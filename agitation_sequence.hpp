@@ -5,34 +5,9 @@
 #include <stdbool.h>
 #include "debug.hpp"
 
-#ifdef HOST
-// Host system version - minimal string implementation
-class FuriString {
-public:
-    FuriString(const char* str = nullptr)
-        : data(str) {
-    }
-    const char* getData() const {
-        return data;
-    }
+#include "host_helpers.hpp"
 
-private:
-    const char* data;
-};
-
-inline FuriString* furi_string_alloc() {
-    return new FuriString();
-}
-inline void furi_string_free(FuriString* str) {
-    delete str;
-}
-inline FuriString* furi_string_alloc_set(const char* str) {
-    return new FuriString(str);
-}
-#else
-#include <furi.h>
-#include <furi_hal_gpio.h>
-#endif
+#define TAG_AGITATION_SEQUENCE "AgitationSequence"
 
 /**
  * @brief Movement types for agitation sequence
@@ -123,19 +98,34 @@ struct AgitationMovement_ {
     void print() const {
         switch(type) {
         case AgitationMovementTypeCW:
-            DEBUG_PRINT("CW movement, duration: %u", duration);
+            FURI_LOG_D(
+                TAG_AGITATION_SEQUENCE,
+                "CW movement, duration: %u",
+                duration);
             break;
         case AgitationMovementTypeCCW:
-            DEBUG_PRINT("CCW movement, duration: %u", duration);
+            FURI_LOG_D(
+                TAG_AGITATION_SEQUENCE,
+                "CCW movement, duration: %u",
+                duration);
             break;
         case AgitationMovementTypePause:
-            DEBUG_PRINT("Pause, duration: %u", duration);
+            FURI_LOG_D(
+                TAG_AGITATION_SEQUENCE,
+                "Pause, duration: %u",
+                duration);
             break;
         case AgitationMovementTypeLoop:
-            DEBUG_PRINT("Loop, count: %u, sequence length: %zu", loop.count, loop.sequence_length);
+            FURI_LOG_D(
+                TAG_AGITATION_SEQUENCE,
+                "Loop, count: %u, sequence length: %zu",
+                loop.count,
+                loop.sequence_length);
             break;
         case AgitationMovementTypeWaitUser:
-            DEBUG_PRINT("Wait for user");
+            FURI_LOG_D(
+                TAG_AGITATION_SEQUENCE,
+                "Wait for user");
             break;
         }
     }
@@ -154,10 +144,22 @@ typedef struct {
 
 #ifdef HOST
     void print() const {
-        DEBUG_PRINT("Step: %s", name->getData());
-        DEBUG_PRINT("Description: %s", description->getData());
-        DEBUG_PRINT("Temperature: %.1f°C", temperature);
-        DEBUG_PRINT("Sequence (%zu movements):", sequence_length);
+        FURI_LOG_D(
+            TAG_AGITATION_SEQUENCE,
+            "Step: %s",
+            name->getData());
+        FURI_LOG_D(
+            TAG_AGITATION_SEQUENCE,
+            "Description: %s",
+            description->getData());
+        FURI_LOG_D(
+            TAG_AGITATION_SEQUENCE,
+            "Temperature: %.1f°C",
+            temperature);
+        FURI_LOG_D(
+            TAG_AGITATION_SEQUENCE,
+            "Sequence (%zu movements):",
+            sequence_length);
         for(size_t i = 0; i < sequence_length; i++) {
             sequence[i].print();
         }
@@ -179,12 +181,27 @@ typedef struct {
 
 #ifdef HOST
     void print() const {
-        DEBUG_PRINT("Process: %s", process_name->getData());
-        DEBUG_PRINT("Film Type: %s", film_type->getData());
-        DEBUG_PRINT("Tank Type: %s", tank_type->getData());
-        DEBUG_PRINT("Chemistry: %s", chemistry->getData());
-        DEBUG_PRINT("Temperature: %.1f°C", temperature);
-        DEBUG_PRINT("Steps (%zu):", steps_length);
+        FURI_LOG_D(
+            TAG_AGITATION_SEQUENCE,
+            "Process: %s",
+            process_name->getData());
+        FURI_LOG_D(
+            TAG_AGITATION_SEQUENCE,
+            "Film Type: %s",
+            film_type->getData());
+        FURI_LOG_D(
+            TAG_AGITATION_SEQUENCE,
+            "Tank Type: %s",
+            tank_type->getData());
+        FURI_LOG_D(TAG_AGITATION_SEQUENCE, "Chemistry: %s", chemistry->getData());
+        FURI_LOG_D(
+            TAG_AGITATION_SEQUENCE,
+            "Temperature: %.1f°C",
+            temperature);
+        FURI_LOG_D(
+            TAG_AGITATION_SEQUENCE,
+            "Steps (%zu):",
+            steps_length);
         for(size_t i = 0; i < steps_length; i++) {
             steps[i].print();
         }

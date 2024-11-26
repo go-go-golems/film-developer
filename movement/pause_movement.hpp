@@ -1,6 +1,8 @@
 #pragma once
 #include "movement.hpp"
 
+#define TAG "PauseMovement"
+
 class PauseMovement final : public AgitationMovement {
 public:
     explicit PauseMovement(uint32_t duration)
@@ -8,7 +10,11 @@ public:
     }
 
     bool execute(MotorController& motor) override {
-        DEBUG_PRINT("Executing PauseMovement | Elapsed: %u/%u", elapsed_time + 1, duration);
+        FURI_LOG_D(
+            TAG,
+            "Executing PauseMovement | Elapsed: %lu/%lu",
+            (uint32_t)(elapsed_time + 1),
+            (uint32_t)duration);
 
         if(elapsed_time >= duration) {
             return false;
@@ -18,7 +24,7 @@ public:
         elapsed_time++;
 
         if(elapsed_time >= duration) {
-            DEBUG_PRINT("PauseMovement completed");
+            FURI_LOG_D(TAG, "PauseMovement completed");
             return false;
         }
         return true;
@@ -29,15 +35,16 @@ public:
     }
 
     void reset() override {
-        DEBUG_PRINT("Resetting PauseMovement");
+        FURI_LOG_D(TAG, "Resetting PauseMovement");
         elapsed_time = 0;
     }
 
     void print() const override {
-        DEBUG_PRINT(
-            "PauseMovement | Duration: %u ticks | Elapsed: %u | Remaining: %u",
-            duration,
-            elapsed_time,
-            duration > elapsed_time ? duration - elapsed_time : 0);
+        FURI_LOG_D(
+            TAG,
+            "PauseMovement | Duration: %lu ticks | Elapsed: %lu | Remaining: %lu",
+            (uint32_t)duration,
+            (uint32_t)elapsed_time,
+            (uint32_t)(duration > elapsed_time ? duration - elapsed_time : 0));
     }
 };

@@ -1,14 +1,20 @@
 #pragma once
 #include "movement.hpp"
 
+#define TAG_WAIT_USER "WaitUserMovement"
+
 class WaitUserMovement final : public AgitationMovement {
 public:
-    WaitUserMovement() : AgitationMovement(Type::WaitUser) {}
+    WaitUserMovement()
+        : AgitationMovement(Type::WaitUser) {
+    }
 
     bool execute(MotorController& motor) override {
-        DEBUG_PRINT("Executing WaitUserMovement | State: %s | Elapsed: %u", 
+        FURI_LOG_D(
+            TAG_WAIT_USER,
+            "Executing WaitUserMovement | State: %s | Elapsed: %lu",
             user_acknowledged ? "acknowledged" : "waiting",
-            elapsed_time + 1);
+            (uint32_t)(elapsed_time + 1));
 
         motor.stop();
         return !user_acknowledged;
@@ -27,11 +33,13 @@ public:
     }
 
     void print() const override {
-        DEBUG_PRINT("WaitUserMovement | State: %s | Elapsed: %u", 
+        FURI_LOG_D(
+            TAG_WAIT_USER,
+            "WaitUserMovement | State: %s | Elapsed: %lu",
             user_acknowledged ? "acknowledged" : "waiting",
-            elapsed_time);
+            (uint32_t)elapsed_time);
     }
 
 private:
     bool user_acknowledged{false};
-}; 
+};
