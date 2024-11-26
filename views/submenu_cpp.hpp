@@ -31,7 +31,7 @@ public:
         submenu_set_selected_item(submenu, index);
     }
 
-    uint32_t get_selected_item() {
+    uint32_t get_selected_item() const {
         return submenu_get_selected_item(submenu);
     }
 
