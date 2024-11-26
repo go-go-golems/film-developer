@@ -1,5 +1,14 @@
 # Film Developer View Specification
 
+## Architecture Overview
+
+The application will follow the architecture pattern shown in example_cpp_view, using:
+
+- A main application class (`FilmDeveloperApp`) managing view dispatch
+- Individual view classes for each screen
+- A shared view model for state management
+- Clear separation between UI and business logic
+
 ## View Classes
 
 ### 1. Main Development View (ViewCpp)
@@ -85,94 +94,139 @@ graph TD
    - After process completion
    - After process abort confirmation
 
-## Roll Count Implementation Details
-
-The roll count will use dynamic increments to allow efficient selection of both small and large numbers:
-
-- Range 1-10: Single step increments for precise selection
-- Range 11-20: Two step increments (11,13,15,...)
-- Range 21-50: Five step increments (21,26,31,...)
-- Range 51-100: Ten step increments (51,61,71,...)
-
-Long press behavior:
-
-- Short press: Single increment based on current range
-- Long press: Continuous increment with current range step size
-- Extra long press: Double the increment speed
-
-This approach maintains usability for both small and large roll counts while keeping the interface simple and efficient.
-
-## Models
-
-### 1. MainViewModel
-
-Manages the state for the main development view:
-
-```cpp
-struct MainViewModel {
-    // Process state
-    const AgitationProcessStatic* current_process{nullptr};
-    bool process_active{false};
-    bool paused{false};
-
-    // Adjustments
-    int8_t push_pull_stops{0};  // -2 to +2
-    uint8_t roll_count{1};      // 1-100
-
-    // Display info
-    char status_text[64]{};
-    char step_text[32]{};
-    char movement_text[32]{};
-};
-```
-
-## Model Management
-
-### Main Development View
-
-- Initializes MainViewModel in init()
-- Updates model in timer callback
-- Locks model during updates using ViewCpp's model management
-- Motor controller and process interpreter remain as dependencies
-
-### Settings View
-
-- Uses ProcessSettingsModel to track adjustments
-- Handles dynamic roll count increments
-- Maintains state between view transitions
-- Provides computed values to process timing
-
-### Dialog View
-
-- Simple state management through DialogModel
-- Updates based on user actions and process state
-- Maintains message history if needed
-
 ## State Flow
 
 1. **Application Start**
 
-   - Initialize ProcessSettingsModel with defaults
-   - Create empty MainViewModel
+   - Initialize settings with defaults
+   - Create empty development state
 
 2. **Process Selection**
 
-   - Update ProcessSettingsModel.selected_process
+   - Update selected process
    - Initialize relevant process parameters
 
 3. **Settings Adjustment**
 
-   - Modify ProcessSettingsModel
+   - Modify settings
    - Calculate timing adjustments based on push/pull
    - Handle dynamic roll count increments
 
 4. **Development Process**
 
-   - Create MainViewModel with selected process
+   - Create development state with selected process
    - Update state through timer callbacks
    - Handle pausing and user interventions
 
 5. **Process Completion**
-   - Clean up MainViewModel
+   - Clean up development state
    - Reset to initial state
-   - Preserve last used settings in ProcessSettingsModel
+   - Preserve last used settings
+
+## Custom Events Architecture
+
+### Event Types
+
+```cpp
+enum class FilmDeveloperEvent : uint32_t {
+    // Navigation Events
+    ProcessSelected = 0,
+    SettingsConfirmed = 1,
+    ProcessAborted = 2,
+    ProcessCompleted = 3,
+    
+    // Process Control Events
+    StartProcess = 10,
+    PauseProcess = 11,
+    ResumeProcess = 12,
+    
+    // User Intervention Events
+    UserActionRequired = 20,
+    UserActionConfirmed = 21,
+    
+    // Timer Events
+    TimerTick = 30,
+    StepComplete = 31,
+    
+    // Motor Control Events
+    MotorStateChanged = 40,
+    AgitationComplete = 41,
+    
+    // Settings Events
+    PushPullChanged = 50,
+    RollCountChanged = 51
+};
+```
+
+### Event Flow Patterns
+
+1. **Process Selection Flow**
+   ```
+   ProcessSelection View -> ProcessSelected -> App -> SettingsView
+   ```
+
+2. **Settings Confirmation Flow**
+   ```
+   Settings View -> SettingsConfirmed -> App -> MainDevelopment View
+   ```
+
+3. **Development Control Flow**
+   ```
+   MainDevelopment View -> StartProcess -> App -> Process Controller
+   Process Controller -> TimerTick -> App -> MainDevelopment View (update display)
+   Process Controller -> StepComplete -> App -> MainDevelopment View (next step)
+   ```
+
+4. **User Intervention Flow**
+   ```
+   Process Controller -> UserActionRequired -> App -> Confirmation Dialog
+   Confirmation Dialog -> UserActionConfirmed -> App -> Process Controller
+   ```
+
+5. **Motor Control Flow**
+   ```
+   Process Controller -> MotorStateChanged -> App -> MainDevelopment View
+   Process Controller -> AgitationComplete -> App -> Process Controller
+   ```
+
+### Event Handling Responsibilities
+
+1. **Application (FilmDeveloperApp)**
+   - Manages view transitions based on navigation events
+   - Routes process control events to Process Controller
+   - Updates views based on state change events
+   - Manages dialog displays for user interventions
+
+2. **Process Controller**
+   - Emits timer and step completion events
+   - Triggers motor control events
+   - Requests user interventions
+   - Manages process state transitions
+
+3. **Views**
+   - Emit user interaction events
+   - Update display based on received state events
+   - Handle view-specific input events
+
+4. **Motor Controller**
+   - Emits motor state change events
+   - Reports agitation completion
+
+### Implementation Guidelines
+
+1. **Event Propagation**
+   - Views send events up to application
+   - Application routes events to appropriate handlers
+   - State changes propagate down to views
+
+2. **State Updates**
+   - All state changes should be event-driven
+   - Views receive state updates through model updates
+   - No direct state manipulation in views
+
+3. **Error Handling**
+   - Events should include error states
+   - Error propagation through event system
+   - Consistent error handling patterns
+
+See IMPLEMENTATION.md for detailed implementation guidance.
