@@ -14,7 +14,7 @@ class FilmDeveloperApp {
 public:
     enum ViewId {
         ViewProcessSelection,
-        // ViewSettings,
+        ViewSettings,
         // ViewMainDevelopment,
         // ViewConfirmationDialog,
         ViewCount,
@@ -72,12 +72,13 @@ public:
     void init() {
         // Initialize view map with actual view pointers
         view_map[ViewProcessSelection].view = &process_view;
-        // view_map[ViewSettings].view = &settings_view;
+        view_map[ViewSettings].view = &settings_view;
         // view_map[ViewMainDevelopment].view = &main_view;
         // view_map[ViewConfirmationDialog].view = &dialog_view;
 
         // Set up view transitions
-        view_map[ViewProcessSelection].next_view = ViewProcessSelection;
+        view_map[ViewProcessSelection].next_view = ViewSettings;
+        view_map[ViewSettings].next_view = ViewProcessSelection;
         // view_map[ViewProcessSelection].next_view = ViewSettings;
         // view_map[ViewSettings].next_view = ViewMainDevelopment;
         // view_map[ViewMainDevelopment].next_view = ViewProcessSelection;
@@ -150,7 +151,7 @@ private:
     // Views
     // MainDevelopmentView main_view{model};
     ProcessSelectionView process_view;
-    // SettingsView settings_view{model};
+    SettingsView settings_view{model};
     // ConfirmationDialogView dialog_view;
 
     static bool custom_callback(void* context, uint32_t event) {
@@ -164,14 +165,15 @@ private:
     }
 
     bool handle_custom_event(FilmDeveloperEvent event) {
-        // auto model = this->model.lock();
+        auto model = this->model.lock();
 
         switch(event) {
-            // case FilmDeveloperEvent::ProcessSelected:
-            //   return switch_to_view(ViewSettings);
+        case FilmDeveloperEvent::ProcessSelected:
+            return switch_to_view(ViewSettings);
 
-            // case FilmDeveloperEvent::SettingsConfirmed:
-            //   model->set_process(process_view.get_selected_process());
+        case FilmDeveloperEvent::SettingsConfirmed:
+            model->set_process(process_view.get_selected_process());
+            return switch_to_view(ViewProcessSelection);
             //   return switch_to_view(ViewMainDevelopment);
 
         case FilmDeveloperEvent::ProcessAborted:
@@ -233,7 +235,9 @@ private:
 };
 
 FilmDeveloperApp::ViewMap FilmDeveloperApp::view_map[ViewCount] = {
-    {ViewProcessSelection, nullptr, ViewProcessSelection},
+    {ViewProcessSelection, nullptr, ViewSettings},
+    {ViewSettings, nullptr, ViewProcessSelection},
+
     // {ViewProcessSelection, nullptr, ViewSettings},
     // {ViewSettings, nullptr, ViewMainDevelopment},
     // {ViewMainDevelopment, nullptr, ViewProcessSelection},
