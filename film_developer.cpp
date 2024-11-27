@@ -1,9 +1,8 @@
-#include "views/main_development_view.hpp"
-#include "views/process_selection_view.hpp"
-#include "views/settings_view.hpp"
-#include "views/confirmation_dialog_view.hpp"
+#include "views/app/main_development_view.hpp"
+#include "views/app/process_selection_view.hpp"
+#include "views/app/settings_view.hpp"
+#include "views/app/confirmation_dialog_view.hpp"
 #include "models/main_view_model.hpp"
-#include "models/process_settings_model.hpp"
 #ifndef HOST
 #include "embedded/motor_controller_embedded.hpp"
 #endif
@@ -42,6 +41,10 @@ public:
         view_dispatcher_set_custom_event_callback(view_dispatcher, custom_callback);
         view_dispatcher_set_navigation_event_callback(view_dispatcher, navigation_callback);
 
+        auto model = this->model.lock();
+        model->reset();
+        model->motor_controller = motor_controller;
+
 #ifndef HOST
         static_cast<MotorControllerEmbedded*>(motor_controller)->initGpio();
 #endif
@@ -52,6 +55,10 @@ public:
         static_cast<MotorControllerEmbedded*>(motor_controller)->deinitGpio();
 #endif
         delete motor_controller;
+
+        if(timer) {
+            furi_event_loop_timer_free(timer);
+        }
 
         if(view_dispatcher != nullptr) {
             for(size_t i = 0; i < ViewCount; i++) {
@@ -83,14 +90,47 @@ public:
                 view_dispatcher, static_cast<ViewId>(i), view_map[i].view->get_view());
         }
 
-        // Set up motor controller for main view
-        main_view.set_motor_controller(motor_controller);
+        event_loop = furi_event_loop_alloc();
+
+        // Move this to the app itself
+        // Create timer for periodic updates
+        timer = furi_event_loop_timer_alloc(
+            event_loop, timer_callback, FuriEventLoopTimerTypePeriodic, this);
+        furi_event_loop_timer_start(timer, 1000); // 1 second intervals
     }
 
     void run() {
         // Start with process selection
         view_dispatcher_switch_to_view(view_dispatcher, ViewProcessSelection);
         view_dispatcher_run(view_dispatcher);
+    }
+
+    static void timer_callback(void* context) {
+        auto app = static_cast<FilmDeveloperApp*>(context);
+        app->update();
+    }
+
+    void update() {
+        return;
+        auto model = this->model.lock();
+        if(model->process_active && !model->paused) {
+            bool still_active = process_interpreter->tick();
+
+            // Update status texts
+            const AgitationStepStatic* current_step =
+                &model->current_process->steps[process_interpreter->getCurrentStepIndex()];
+
+            model->update_step_text(current_step->name);
+            model->update_status(
+                process_interpreter->getCurrentMovementTimeElapsed(),
+                process_interpreter->getCurrentMovementDuration());
+            model->update_movement_text(motor_controller->getDirectionString());
+
+            model->process_active = still_active;
+            if(!still_active) {
+                motor_controller->stop();
+            }
+        }
     }
 
 private:
@@ -100,14 +140,18 @@ private:
     ViewId current_view = ViewProcessSelection;
     ViewId previous_view = ViewProcessSelection;
 
-    // Views
-    MainDevelopmentView main_view;
-    ProcessSelectionView process_view;
-    SettingsView settings_view;
-    ConfirmationDialogView dialog_view;
+    ProtectedMainViewModel model;
+    AgitationProcessInterpreter* process_interpreter{nullptr};
+    MotorController* motor_controller{nullptr};
 
-    // Motor controller
-    MotorController* motor_controller = nullptr;
+    FuriEventLoopTimer* timer{nullptr};
+    FuriEventLoop* event_loop{nullptr};
+
+    // Views
+    MainDevelopmentView main_view{model};
+    ProcessSelectionView process_view;
+    SettingsView settings_view{model};
+    ConfirmationDialogView dialog_view;
 
     static bool custom_callback(void* context, uint32_t event) {
         auto app = static_cast<FilmDeveloperApp*>(context);
@@ -120,12 +164,13 @@ private:
     }
 
     bool handle_custom_event(FilmDeveloperEvent event) {
+        auto model = this->model.lock();
         switch(event) {
         case FilmDeveloperEvent::ProcessSelected:
             return switch_to_view(ViewSettings);
 
         case FilmDeveloperEvent::SettingsConfirmed:
-            main_view.set_process(process_view.get_selected_process());
+            model->set_process(process_view.get_selected_process());
             return switch_to_view(ViewMainDevelopment);
 
         case FilmDeveloperEvent::ProcessAborted:

@@ -28,7 +28,7 @@ public:
 
   // Getters for state information
   bool isWaitingForUser() const;
-  const char* getUserMessage() const;
+  const char *getUserMessage() const;
   size_t getCurrentStepIndex() const { return current_step_index; }
   const AgitationProcessStatic *getCurrentProcess() const { return process; }
   AgitationProcessState getState() const { return process_state; }
@@ -40,8 +40,8 @@ public:
   void advanceToNextMovement();
 
   // New helper methods
-  const AgitationStepStatic* getCurrentStep() const;
-  const AgitationMovement* getCurrentMovement() const;
+  const AgitationStepStatic *getCurrentStep() const;
+  const AgitationMovement *getCurrentMovement() const;
 
 private:
   void initializeMovementSequence(const AgitationStepStatic *step);

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "submenu_cpp.hpp"
-#include "../agitation_processes.hpp"
-#include "../film_developer_events.hpp"
+#include "../submenu_cpp.hpp"
+#include "../../agitation_processes.hpp"
+#include "../../film_developer_events.hpp"
 
 class ProcessSelectionView : public flipper::SubMenuCpp {
 public:
