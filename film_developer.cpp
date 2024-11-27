@@ -15,7 +15,7 @@ public:
     enum ViewId {
         ViewProcessSelection,
         ViewSettings,
-        // ViewMainDevelopment,
+        ViewMainDevelopment,
         // ViewConfirmationDialog,
         ViewCount,
     };
@@ -73,12 +73,14 @@ public:
         // Initialize view map with actual view pointers
         view_map[ViewProcessSelection].view = &process_view;
         view_map[ViewSettings].view = &settings_view;
-        // view_map[ViewMainDevelopment].view = &main_view;
+        view_map[ViewMainDevelopment].view = &main_view;
         // view_map[ViewConfirmationDialog].view = &dialog_view;
 
         // Set up view transitions
         view_map[ViewProcessSelection].next_view = ViewSettings;
-        view_map[ViewSettings].next_view = ViewProcessSelection;
+        view_map[ViewSettings].next_view = ViewMainDevelopment;
+        view_map[ViewMainDevelopment].next_view = ViewProcessSelection;
+
         // view_map[ViewProcessSelection].next_view = ViewSettings;
         // view_map[ViewSettings].next_view = ViewMainDevelopment;
         // view_map[ViewMainDevelopment].next_view = ViewProcessSelection;
@@ -149,7 +151,7 @@ private:
     FuriEventLoop* event_loop{nullptr};
 
     // Views
-    // MainDevelopmentView main_view{model};
+    MainDevelopmentView main_view{model};
     ProcessSelectionView process_view;
     SettingsView settings_view{model};
     // ConfirmationDialogView dialog_view;
@@ -173,8 +175,7 @@ private:
 
         case FilmDeveloperEvent::SettingsConfirmed:
             model->set_process(process_view.get_selected_process());
-            return switch_to_view(ViewProcessSelection);
-            //   return switch_to_view(ViewMainDevelopment);
+            return switch_to_view(ViewMainDevelopment);
 
         case FilmDeveloperEvent::ProcessAborted:
             return switch_to_view(ViewProcessSelection);
@@ -236,7 +237,8 @@ private:
 
 FilmDeveloperApp::ViewMap FilmDeveloperApp::view_map[ViewCount] = {
     {ViewProcessSelection, nullptr, ViewSettings},
-    {ViewSettings, nullptr, ViewProcessSelection},
+    {ViewSettings, nullptr, ViewMainDevelopment},
+    {ViewMainDevelopment, nullptr, ViewProcessSelection},
 
     // {ViewProcessSelection, nullptr, ViewSettings},
     // {ViewSettings, nullptr, ViewMainDevelopment},

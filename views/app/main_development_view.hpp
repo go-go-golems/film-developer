@@ -18,8 +18,9 @@ private:
     ProtectedMainViewModel& model;
 
 protected:
-    void draw(Canvas* canvas, void* model) override {
-        auto m = static_cast<ProtectedMainViewModel*>(model)->lock();
+    void draw(Canvas* canvas, void*) override {
+        UNUSED(model);
+        auto m = model.lock();
         auto process_interpreter = m->process_interpreter;
         auto motor_controller = m->motor_controller;
 
@@ -27,7 +28,7 @@ protected:
         canvas_set_font(canvas, FontPrimary);
 
         // Draw title
-        canvas_draw_str(canvas, 2, 12, "C41 Process");
+        canvas_draw_str(canvas, 2, 12, m->current_process->process_name);
 
         // Draw current step info
         canvas_set_font(canvas, FontSecondary);
@@ -46,11 +47,17 @@ protected:
         }
 
         // Draw pin states
-        canvas_draw_str(canvas, 2, 60, "CW:");
-        canvas_draw_str(canvas, 50, 60, motor_controller->isRunning() ? "ON" : "OFF");
-
-        canvas_draw_str(canvas, 2, 70, "CCW:");
-        canvas_draw_str(canvas, 50, 70, motor_controller->isRunning() ? "ON" : "OFF");
+        if(motor_controller->isRunning()) {
+            if(motor_controller->isClockwise()) {
+                canvas_draw_str(canvas, 2, 60, "CW:");
+            } else {
+                canvas_draw_str(canvas, 2, 60, "CCW:");
+            }
+            canvas_draw_str(canvas, 50, 60, "ON");
+        } else {
+            canvas_draw_str(canvas, 2, 60, "CW/CCW:");
+            canvas_draw_str(canvas, 50, 60, "OFF");
+        }
 
         // Draw control hints
         if(m->process_active) {
@@ -75,6 +82,7 @@ protected:
 
         if(event->type == InputTypeShort) {
             if(event->key == InputKeyOk) {
+                // XXX should move to the main
                 if(!model->process_active) {
                     // Start new process
                     process_interpreter.init(model->current_process, motor_controller);
