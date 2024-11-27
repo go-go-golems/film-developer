@@ -15,8 +15,8 @@ public:
 
   // Display information
   char status_text[64]{};
-  char step_text[32]{};
-  char movement_text[32]{};
+  char step_text[64]{};
+  char movement_text[64]{};
 
   // Process settings
   int8_t push_pull_stops{0};
@@ -31,9 +31,7 @@ public:
   AgitationProcessInterpreter process_interpreter;
   MotorController *motor_controller{nullptr};
 
-  void init() {
-    reset();
-  }
+  void init() { reset(); }
 
   void set_process(const AgitationProcessStatic *process) {
     current_process = process;

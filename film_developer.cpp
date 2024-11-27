@@ -1,3 +1,4 @@
+#include "gui/view_dispatcher_i.h"
 #include "models/main_view_model.hpp"
 #include "views/app/confirmation_dialog_view.hpp"
 #include "views/app/main_development_view.hpp"
@@ -6,9 +7,12 @@
 #ifndef HOST
 #include "embedded/motor_controller_embedded.hpp"
 #endif
+
+extern "C" {
 #include <furi.h>
 #include <gui/gui.h>
 #include <gui/view_dispatcher.h>
+}
 
 class FilmDeveloperApp {
 public:
@@ -16,7 +20,7 @@ public:
         ViewProcessSelection,
         ViewSettings,
         ViewMainDevelopment,
-        // ViewConfirmationDialog,
+        ViewConfirmationDialog,
         ViewCount,
     };
 
@@ -40,6 +44,7 @@ public:
         view_dispatcher_set_event_callback_context(view_dispatcher, this);
         view_dispatcher_set_custom_event_callback(view_dispatcher, custom_callback);
         view_dispatcher_set_navigation_event_callback(view_dispatcher, navigation_callback);
+        view_dispatcher_set_tick_event_callback(view_dispatcher, timer_callback, 1000);
 
 #ifndef HOST
         static_cast<MotorControllerEmbedded*>(motor_controller)->initGpio();
@@ -56,10 +61,6 @@ public:
 #endif
         delete motor_controller;
 
-        if(timer) {
-            furi_event_loop_timer_free(timer);
-        }
-
         if(view_dispatcher != nullptr) {
             for(size_t i = 0; i < ViewCount; i++) {
                 view_dispatcher_remove_view(view_dispatcher, static_cast<ViewId>(i));
@@ -74,17 +75,13 @@ public:
         view_map[ViewProcessSelection].view = &process_view;
         view_map[ViewSettings].view = &settings_view;
         view_map[ViewMainDevelopment].view = &main_view;
-        // view_map[ViewConfirmationDialog].view = &dialog_view;
+        view_map[ViewConfirmationDialog].view = &dialog_view;
 
         // Set up view transitions
         view_map[ViewProcessSelection].next_view = ViewSettings;
         view_map[ViewSettings].next_view = ViewMainDevelopment;
         view_map[ViewMainDevelopment].next_view = ViewProcessSelection;
-
-        // view_map[ViewProcessSelection].next_view = ViewSettings;
-        // view_map[ViewSettings].next_view = ViewMainDevelopment;
-        // view_map[ViewMainDevelopment].next_view = ViewProcessSelection;
-        // view_map[ViewConfirmationDialog].next_view = ViewProcessSelection;
+        view_map[ViewConfirmationDialog].next_view = ViewProcessSelection;
 
         // Initialize all views
         for(size_t i = 0; i < ViewCount; i++) {
@@ -93,14 +90,6 @@ public:
             view_dispatcher_add_view(
                 view_dispatcher, static_cast<ViewId>(i), view_map[i].view->get_view());
         }
-
-        event_loop = furi_event_loop_alloc();
-
-        // Move this to the app itself
-        // Create timer for periodic updates
-        timer = furi_event_loop_timer_alloc(
-            event_loop, timer_callback, FuriEventLoopTimerTypePeriodic, this);
-        furi_event_loop_timer_start(timer, 1000); // 1 second intervals
     }
 
     void run() {
@@ -114,26 +103,37 @@ public:
         app->update();
     }
 
+    int ticks = 0;
+
     void update() {
-        // auto model = this->model.lock();
-        // if (model->process_active && !model->paused) {
-        //   bool still_active = process_interpreter->tick();
+        auto model = this->model.lock();
+        if(model->process_active && !model->paused) {
+            // bool still_active = process_interpreter->tick();
 
-        //   // Update status texts
-        //   const AgitationStepStatic *current_step =
-        //       &model->current_process
-        //            ->steps[process_interpreter->getCurrentStepIndex()];
+            // // Update status texts
+            // const AgitationStepStatic* current_step =
+            //     &model->current_process->steps[process_interpreter->getCurrentStepIndex()];
 
-        //   model->update_step_text(current_step->name);
-        //   model->update_status(process_interpreter->getCurrentMovementTimeElapsed(),
-        //                        process_interpreter->getCurrentMovementDuration());
-        //   model->update_movement_text(motor_controller->getDirectionString());
+            // model->update_step_text(current_step->name);
+            // model->update_status(
+            //     process_interpreter->getCurrentMovementTimeElapsed(),
+            //     process_interpreter->getCurrentMovementDuration());
+            // model->update_movement_text(motor_controller->getDirectionString());
 
-        //   model->process_active = still_active;
-        //   if (!still_active) {
-        //     motor_controller->stop();
-        //   }
-        // }
+            // model->process_active = still_active;
+            // if(!still_active) {
+            //     motor_controller->stop();
+            // }
+        } else {
+            // ticks = 0;
+        }
+        ticks++;
+        char status_text[32];
+        snprintf(status_text, sizeof(status_text), "ticks: %d", ticks);
+        model->update_step_text(status_text);
+
+        // kind of a hack to update the main view...
+        main_view.get_view()->update_callback(main_view.get_view(), view_dispatcher);
     }
 
 private:
@@ -144,17 +144,13 @@ private:
     ViewId previous_view = ViewProcessSelection;
 
     ProtectedMainViewModel model;
-    AgitationProcessInterpreter* process_interpreter{nullptr};
     MotorController* motor_controller{nullptr};
-
-    FuriEventLoopTimer* timer{nullptr};
-    FuriEventLoop* event_loop{nullptr};
 
     // Views
     MainDevelopmentView main_view{model};
     ProcessSelectionView process_view;
     SettingsView settings_view{model};
-    // ConfirmationDialogView dialog_view;
+    ConfirmationDialogView dialog_view;
 
     static bool custom_callback(void* context, uint32_t event) {
         auto app = static_cast<FilmDeveloperApp*>(context);
@@ -180,11 +176,11 @@ private:
         case FilmDeveloperEvent::ProcessAborted:
             return switch_to_view(ViewProcessSelection);
 
-            // case FilmDeveloperEvent::UserActionRequired:
-            //   return switch_to_view(ViewConfirmationDialog);
+        case FilmDeveloperEvent::UserActionRequired:
+            return switch_to_view(ViewConfirmationDialog);
 
-            // case FilmDeveloperEvent::UserActionConfirmed:
-            //   return switch_to_view(previous_view);
+        case FilmDeveloperEvent::UserActionConfirmed:
+            return switch_to_view(previous_view);
 
         default:
             return false;
@@ -192,20 +188,18 @@ private:
     }
 
     bool handle_back_event() {
-        view_dispatcher_stop(view_dispatcher);
-        return true;
-        // if(current_view == ViewProcessSelection) {
-        //     // Exit app from process selection
-        //     view_dispatcher_stop(view_dispatcher);
-        //     return true;
-        // } else if(current_view == ViewMainDevelopment) {
-        //     // Show confirmation dialog before exiting development
-        //     dialog_view.show_dialog(ConfirmationDialogView::DialogType::ProcessAbort);
-        //     return switch_to_view(ViewConfirmationDialog);
-        // }
+        if(current_view == ViewProcessSelection) {
+            // Exit app from process selection
+            view_dispatcher_stop(view_dispatcher);
+            return true;
+        } else if(current_view == ViewMainDevelopment) {
+            // Show confirmation dialog before exiting development
+            dialog_view.show_dialog(ConfirmationDialogView::DialogType::ProcessAbort);
+            return switch_to_view(ViewConfirmationDialog);
+        }
 
-        // // Default: go back to process selection
-        // return switch_to_view(ViewProcessSelection);
+        // Default: go back to process selection
+        return switch_to_view(ViewProcessSelection);
     }
 
     bool switch_to_view(ViewId new_view_id) {
@@ -239,11 +233,7 @@ FilmDeveloperApp::ViewMap FilmDeveloperApp::view_map[ViewCount] = {
     {ViewProcessSelection, nullptr, ViewSettings},
     {ViewSettings, nullptr, ViewMainDevelopment},
     {ViewMainDevelopment, nullptr, ViewProcessSelection},
-
-    // {ViewProcessSelection, nullptr, ViewSettings},
-    // {ViewSettings, nullptr, ViewMainDevelopment},
-    // {ViewMainDevelopment, nullptr, ViewProcessSelection},
-    // {ViewConfirmationDialog, nullptr, ViewProcessSelection},
+    {ViewConfirmationDialog, nullptr, ViewProcessSelection},
 };
 
 #ifdef __cplusplus
