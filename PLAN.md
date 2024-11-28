@@ -41,13 +41,40 @@ Single scrollable list with adjustable parameters:
   - Default: "1"
   - Long press left/right for faster adjustment
 
-### 4. Confirmation Dialog (DialogExCpp)
+### 4. Dialog System (DialogExCpp)
 
-For confirming:
+Multiple dialog types for different scenarios:
 
-- Process start
-- Process abort
+#### a. Confirmation Dialog
+- Process start/abort confirmation
 - Step completion requiring user intervention
+- Exit confirmation during active process
+
+#### b. Runtime Settings Dialog
+- Adjust current step duration
+- Skip current step option
+- Restart current step option
+- Accessible during active development
+
+#### c. Pause Dialog
+- Resume process option
+- Access to runtime settings
+- Exit process option (with confirmation)
+
+#### d. Wait For Confirmation Dialog
+- Continue process option
+- Access to runtime settings
+- Required user action description
+
+#### e. Dispatch Dialog
+- Central hub for process control actions
+- Accessible from main development screen
+- Options:
+  - Pause process
+  - Restart current step
+  - Skip current step
+  - Runtime settings
+  - Exit process
 
 ## Navigation Flow
 
@@ -152,7 +179,26 @@ enum class FilmDeveloperEvent : uint32_t {
 
     // Settings Events
     PushPullChanged = 50,
-    RollCountChanged = 51
+    RollCountChanged = 51,
+
+    // State Management Events
+    StateChanged = 60,
+    
+    // Runtime Control Events
+    EnterRuntimeSettings = 70,
+    ExitRuntimeSettings = 71,
+    StepDurationChanged = 72,
+    SkipStep = 73,
+    RestartStep = 74,
+    
+    // Pause Control Events
+    PauseRequested = 80,
+    ResumeRequested = 81,
+    
+    // Dialog Events
+    DialogConfirmed = 90,
+    DialogCancelled = 91,
+    DialogDismissed = 92
 };
 ```
 
@@ -191,49 +237,74 @@ enum class FilmDeveloperEvent : uint32_t {
    Process Controller -> AgitationComplete -> App -> Process Controller
    ```
 
-### Event Handling Responsibilities
+## State Machine
 
-1. **Application (FilmDeveloperApp)**
+### States and Transitions
 
-   - Manages view transitions based on navigation events
-   - Routes process control events to Process Controller
-   - Updates views based on state change events
-   - Manages dialog displays for user interventions
+```mermaid
+stateDiagram-v2
+    [*] --> ProcessSelection
+    ProcessSelection --> Settings
+    Settings --> MainDevelopment
+    
+    MainDevelopment --> Running
+    Running --> DispatchDialog: menu button
+    
+    DispatchDialog --> Running: back
+    DispatchDialog --> Paused: pause
+    DispatchDialog --> ConfirmRestart: restart
+    DispatchDialog --> ConfirmSkip: skip
+    DispatchDialog --> RuntimeSettings: settings
+    DispatchDialog --> ConfirmExit: exit
+    
+    Paused --> Running: resume
+    
+    ConfirmRestart --> Running: no
+    ConfirmRestart --> DispatchDialog: yes
+    
+    ConfirmSkip --> Running: no
+    ConfirmSkip --> DispatchDialog: yes
+    
+    ConfirmExit --> Running: no
+    ConfirmExit --> ProcessSelection: yes
+    
+    Running --> WaitingConfirmation
+    WaitingConfirmation --> Running
+    WaitingConfirmation --> RuntimeSettings
+    
+    RuntimeSettings --> Running
+    RuntimeSettings --> DispatchDialog
+    
+    ProcessSelection --> [*]
+```
 
-2. **Process Controller**
+### State Behaviors
 
-   - Emits timer and step completion events
-   - Triggers motor control events
-   - Requests user interventions
-   - Manages process state transitions
+1. **Running State**
+   - Active development process
+   - Background agitation running
+   - Timer active
+   - Can transition to: Paused, WaitingConfirmation, RuntimeSettings
 
-3. **Views**
+2. **Paused State**
+   - Process temporarily halted
+   - Timer stopped
+   - Agitation stopped
+   - Can transition to: Running, RuntimeSettings
 
-   - Emit user interaction events
-   - Update display based on received state events
-   - Handle view-specific input events
+3. **WaitingConfirmation State**
+   - Process paused for user input
+   - Timer stopped
+   - Agitation stopped
+   - Can transition to: Running, RuntimeSettings
 
-4. **Motor Controller**
-   - Emits motor state change events
-   - Reports agitation completion
+4. **RuntimeSettings State**
+   - Overlay on current process state
+   - Process remains in previous state
+   - Can modify current step parameters
 
-### Implementation Guidelines
-
-1. **Event Propagation**
-
-   - Views send events up to application
-   - Application routes events to appropriate handlers
-   - State changes propagate down to views
-
-2. **State Updates**
-
-   - All state changes should be event-driven
-   - Views receive state updates through model updates
-   - No direct state manipulation in views
-
-3. **Error Handling**
-   - Events should include error states
-   - Error propagation through event system
-   - Consistent error handling patterns
-
-See IMPLEMENTATION.md for detailed implementation guidance.
+5. **DispatchDialog State**
+   - Central control hub overlay
+   - Process remains in previous state
+   - Quick access to all control actions
+   - Can transition to: Running, Paused, ConfirmRestart, ConfirmSkip, RuntimeSettings, ConfirmExit
