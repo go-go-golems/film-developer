@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../../agitation_process_interpreter.hpp"
+#include "../../agitation/agitation_process_interpreter.hpp"
 #include "../../models/main_view_model.hpp"
 #include "../../motor_controller.hpp"
+#include "../../film_developer_events.hpp"
 #include "../common/view_cpp.hpp"
 #include <furi.h>
 #include <furi_hal_resources.h>
@@ -19,6 +20,7 @@ private:
 
 protected:
     void draw(Canvas* canvas, void*) override {
+        FURI_LOG_D("MainView", "Drawing");
         UNUSED(model);
         auto m = model.lock();
         auto process_interpreter = m->process_interpreter;
@@ -81,41 +83,57 @@ protected:
         auto motor_controller = model->motor_controller;
 
         if(event->type == InputTypeShort) {
+            FURI_LOG_D("MainView", "Input received: key=%d", event->key);
+
             if(event->key == InputKeyOk) {
-                // XXX should move to the main
                 if(!model->process_active) {
-                    // Start new process
+                    FURI_LOG_I(
+                        "MainView",
+                        "Starting new process: %s",
+                        model->current_process->process_name);
                     process_interpreter.init(model->current_process, motor_controller);
                     model->process_active = true;
                     model->paused = false;
                 } else if(process_interpreter.isWaitingForUser()) {
-                    // Handle user confirmation
+                    FURI_LOG_I("MainView", "User confirmed action");
                     process_interpreter.confirm();
                 } else {
-                    // Toggle pause
                     model->paused = !model->paused;
+                    FURI_LOG_I("MainView", "Process %s", model->paused ? "paused" : "resumed");
                     if(model->paused) {
                         motor_controller->stop();
                     }
                 }
                 return true;
             } else if(model->process_active && event->key == InputKeyRight) {
-                // Skip to next step (only if not waiting for user)
                 if(!process_interpreter.isWaitingForUser()) {
+                    FURI_LOG_I("MainView", "Skipping to next step");
                     motor_controller->stop();
                     process_interpreter.skipToNextStep();
                     if(process_interpreter.getCurrentStepIndex() >=
                        model->current_process->steps_length) {
+                        FURI_LOG_I("MainView", "Process completed via skip");
                         model->process_active = false;
                     }
                 }
                 return true;
             } else if(model->process_active && event->key == InputKeyLeft) {
-                // Restart current step
+                FURI_LOG_I("MainView", "Restarting current step");
                 motor_controller->stop();
                 process_interpreter.reset();
                 return true;
             }
+        }
+        return false;
+    }
+
+    bool custom(uint32_t event) override {
+        FURI_LOG_D("MainView", "Custom event received: %lu", static_cast<unsigned long>(event));
+        if(event == static_cast<uint32_t>(FilmDeveloperEvent::TimerTick)) {
+            // trigger a redraw
+            auto model = this->get_model<Model>();
+            UNUSED(model);
+            return true;
         }
         return false;
     }
