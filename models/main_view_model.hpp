@@ -6,7 +6,7 @@
 #include "guard.hpp"
 #include <cstdint>
 
-class MainViewModel {
+class Model {
 public:
   // Process state
   const AgitationProcessStatic *current_process{&STAND_DEV_STATIC};
@@ -81,4 +81,4 @@ public:
 };
 
 // Type alias for protected main view model
-using ProtectedMainViewModel = Protected<MainViewModel>;
+using ProtectedModel = Protected<Model>;

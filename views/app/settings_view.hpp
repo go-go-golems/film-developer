@@ -6,7 +6,7 @@
 
 class SettingsView : public flipper::VariableItemListCpp {
 public:
-  SettingsView(ProtectedMainViewModel &model)
+  SettingsView(ProtectedModel &model)
       : flipper::VariableItemListCpp(), model(model) {}
 
   void init() override {
@@ -15,14 +15,14 @@ public:
     auto m = model.lock();
 
     // Add push/pull setting
-    push_pull_item = add_item("Push/Pull", MainViewModel::PUSH_PULL_COUNT,
+    push_pull_item = add_item("Push/Pull", Model::PUSH_PULL_COUNT,
                               push_pull_change_callback, this);
     set_current_value_index(push_pull_item,
                             2); // Default to 0 stops (middle position)
-    set_current_value_text(push_pull_item, MainViewModel::PUSH_PULL_VALUES[2]);
+    set_current_value_text(push_pull_item, Model::PUSH_PULL_VALUES[2]);
 
     // Add roll count setting
-    roll_count_item = add_item("Roll Count", MainViewModel::MAX_ROLL_COUNT,
+    roll_count_item = add_item("Roll Count", Model::MAX_ROLL_COUNT,
                                roll_count_change_callback, this);
     set_current_value_index(roll_count_item, 0); // Default to 1 roll
     update_roll_count_text(1);
@@ -35,7 +35,7 @@ public:
   }
 
 private:
-  ProtectedMainViewModel &model;
+  ProtectedModel &model;
   VariableItem *push_pull_item = nullptr;
   VariableItem *roll_count_item = nullptr;
 
@@ -44,7 +44,7 @@ private:
     uint8_t index = get_current_value_index(item);
     auto m = view->model.lock();
     m->push_pull_stops = index - 2; // Convert from 0-4 to -2 to +2
-    set_current_value_text(item, MainViewModel::PUSH_PULL_VALUES[index]);
+    set_current_value_text(item, Model::PUSH_PULL_VALUES[index]);
   }
 
   static void roll_count_change_callback(VariableItem *item) {

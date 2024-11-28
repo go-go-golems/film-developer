@@ -3,19 +3,19 @@
 #include "../../agitation_process_interpreter.hpp"
 #include "../../models/main_view_model.hpp"
 #include "../../motor_controller.hpp"
-#include "../view_cpp.hpp"
+#include "../common/view_cpp.hpp"
 #include <furi.h>
 #include <furi_hal_resources.h>
 #include <gui/elements.h>
 
 class MainDevelopmentView : public flipper::ViewCpp {
 public:
-    MainDevelopmentView(ProtectedMainViewModel& model)
+    MainDevelopmentView(ProtectedModel& model)
         : model(model) {
     }
 
 private:
-    ProtectedMainViewModel& model;
+    ProtectedModel& model;
 
 protected:
     void draw(Canvas* canvas, void*) override {

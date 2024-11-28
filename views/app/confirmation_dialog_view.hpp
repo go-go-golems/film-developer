@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../dialog_ex_cpp.hpp"
+#include "../common/dialog_ex_cpp.hpp"
 #include "../../film_developer_events.hpp"
 
 class ConfirmationDialogView : public flipper::DialogExCpp {
