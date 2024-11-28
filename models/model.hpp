@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../agitation_process_interpreter.hpp"
-#include "../agitation_processes.hpp"
+#include "../agitation/agitation_process_interpreter.hpp"
+#include "../agitation/agitation_processes.hpp"
 #include "../motor_controller.hpp"
 #include "guard.hpp"
 #include <cstdint>

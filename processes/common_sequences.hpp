@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../agitation_sequence.hpp"
+#include "../agitation/agitation_sequence.hpp"
 
 //------------------------------------------------------------------------------
 // Common Base Sequences
@@ -26,4 +26,4 @@ static const AgitationMovementStatic CONTINUOUS_GENTLE_SEQ[] = {
     {.type = AgitationMovementTypeCCW, .duration = 2},
     {.type = AgitationMovementTypePause, .duration = 1},
 };
-static const size_t CONTINUOUS_GENTLE_SEQ_LENGTH = 4; 
+static const size_t CONTINUOUS_GENTLE_SEQ_LENGTH = 4;

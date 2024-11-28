@@ -1,5 +1,5 @@
 #pragma once
-#include "../agitation_sequence.hpp"
+#include "../agitation/agitation_sequence.hpp"
 #include "movement.hpp"
 #include "movement_factory.hpp"
 #include <array>
