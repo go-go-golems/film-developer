@@ -308,3 +308,72 @@ stateDiagram-v2
    - Process remains in previous state
    - Quick access to all control actions
    - Can transition to: Running, Paused, ConfirmRestart, ConfirmSkip, RuntimeSettings, ConfirmExit
+
+### Implementation State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> ProcessSelection
+    ProcessSelection --> Settings: ProcessSelected
+    Settings --> Running: SettingsConfirmed
+    
+    Running --> Paused: PauseRequested
+    Paused --> Running: ResumeRequested
+    
+    Running --> RuntimeSettings: EnterRuntimeSettings
+    Paused --> RuntimeSettings: EnterRuntimeSettings
+    RuntimeSettings --> Running: ExitRuntimeSettings
+    RuntimeSettings --> Paused: ExitRuntimeSettings
+    
+    Running --> DispatchDialog: DispatchRequested
+    Paused --> DispatchDialog: DispatchRequested
+    DispatchDialog --> Running: DialogDismissed
+    DispatchDialog --> Paused: DialogDismissed
+    
+    Running --> WaitingConfirmation: UserActionRequired
+    WaitingConfirmation --> Running: UserActionConfirmed
+    
+    Running --> ConfirmRestart: RestartStep
+    Paused --> ConfirmRestart: RestartStep
+    ConfirmRestart --> Running: DialogConfirmed
+    
+    Running --> ConfirmSkip: SkipStep
+    Paused --> ConfirmSkip: SkipStep
+    ConfirmSkip --> Running: DialogConfirmed
+    
+    Running --> ConfirmExit: Back pressed
+    ConfirmExit --> ProcessSelection: DialogConfirmed
+    ConfirmExit --> Running: DialogDismissed
+    
+    Running --> ProcessSelection: ProcessCompleted
+    ProcessSelection --> [*]: Back pressed
+```
+
+### View Navigation with Events
+
+```mermaid
+stateDiagram-v2
+    [*] --> ViewProcessSelection
+    ViewProcessSelection --> ViewSettings: ProcessSelected
+    ViewSettings --> ViewMainDevelopment: SettingsConfirmed
+    
+    ViewMainDevelopment --> ViewRuntimeSettings: EnterRuntimeSettings
+    ViewRuntimeSettings --> ViewMainDevelopment: ExitRuntimeSettings
+    
+    ViewMainDevelopment --> ViewDispatchMenu: DispatchRequested
+    ViewDispatchMenu --> ViewMainDevelopment: DialogDismissed
+    
+    ViewMainDevelopment --> ViewConfirmationDialog: UserActionRequired
+    ViewConfirmationDialog --> ViewMainDevelopment: UserActionConfirmed
+    
+    ViewMainDevelopment --> ViewConfirmationDialog: RestartStep
+    ViewMainDevelopment --> ViewConfirmationDialog: SkipStep
+    ViewConfirmationDialog --> ViewMainDevelopment: DialogConfirmed
+    
+    ViewMainDevelopment --> ViewConfirmationDialog: Back pressed
+    ViewConfirmationDialog --> ViewProcessSelection: DialogConfirmed
+    ViewConfirmationDialog --> ViewMainDevelopment: DialogDismissed
+    
+    ViewMainDevelopment --> ViewProcessSelection: ProcessCompleted
+    ViewProcessSelection --> [*]: Back pressed
+```

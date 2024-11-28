@@ -28,5 +28,26 @@ enum class FilmDeveloperEvent : uint32_t {
 
     // Settings Events
     PushPullChanged = 50,
-    RollCountChanged = 51
+    RollCountChanged = 51,
+    
+    // Runtime Control Events
+    EnterRuntimeSettings = 60,
+    ExitRuntimeSettings = 61,
+    StepDurationChanged = 62,
+    SkipStep = 63,
+    RestartStep = 64,
+    
+    // Dialog Events
+    DialogDismissed = 70,
+    DialogConfirmed = 71,
+    
+    // State Machine Events
+    StateChanged = 80,
+    
+    // Dispatch Events
+    DispatchRequested = 90,
+    
+    // Pause Control Events
+    PauseRequested = 100,
+    ResumeRequested = 101
 }; 
