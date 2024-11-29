@@ -1,4 +1,3 @@
-#include "gui/view_dispatcher_i.h"
 #include "models/main_view_model.hpp"
 #include "views/app/confirmation_dialog_view.hpp"
 #include "views/app/main_development_view.hpp"
@@ -285,37 +284,44 @@ private:
         return app->handle_back_event();
     }
 
+    void enter_state(AppState new_state) {
+        FURI_LOG_D(
+            "FilmDev",
+            "State transition: %s -> %s",
+            get_state_name(current_state),
+            get_state_name(new_state));
+            
+        previous_state = current_state;
+        current_state = new_state;
+    }
+
     bool handle_back_event() {
         auto model = this->model.lock();
         switch(current_state) {
         case AppState::ProcessSelection:
-            view_dispatcher_stop(view_dispatcher);
+            // Only allow exit to menu if no process is active
+            if(!model->is_process_active()) {
+                view_dispatcher_stop(view_dispatcher);
+                return true;
+            }
+            return false;
+
+        case AppState::Paused:
+            // Resume process when back is pressed from paused view
+            if(model->resume_process()) {
+                enter_state(AppState::MainView);
+                return switch_to_view(ViewMainDevelopment);
+            }
             return true;
 
         case AppState::MainView:
-        case AppState::Paused:
-            FURI_LOG_D(
-                "FilmDev",
-                "State transition: %s -> %s",
-                get_state_name(current_state),
-                get_state_name(AppState::ConfirmExit));
-
-            previous_state = current_state;
-            current_state = AppState::ConfirmExit;
-
+            enter_state(AppState::ConfirmExit);
             dialog_view.show_dialog(ConfirmationDialogView::DialogType::ProcessAbort);
             return switch_to_view(ViewConfirmationDialog);
 
         case AppState::RuntimeSettings:
         case AppState::DispatchDialog:
-            FURI_LOG_D(
-                "FilmDev",
-                "State transition: %s -> %s",
-                get_state_name(current_state),
-                get_state_name(previous_state));
-
-            current_state = previous_state;
-
+            enter_state(previous_state);
             if(model->is_process_paused()) {
                 return switch_to_view(ViewPaused);
             }
@@ -324,25 +330,11 @@ private:
         case AppState::ConfirmExit:
         case AppState::ConfirmRestart:
         case AppState::ConfirmSkip:
-            FURI_LOG_D(
-                "FilmDev",
-                "State transition: %s -> %s",
-                get_state_name(current_state),
-                get_state_name(previous_state));
-
-            current_state = previous_state;
+            enter_state(previous_state);
             return switch_to_view(ViewMainDevelopment);
 
         default:
-            FURI_LOG_D(
-                "FilmDev",
-                "State transition: %s -> %s",
-                get_state_name(current_state),
-                get_state_name(AppState::ProcessSelection));
-
-            previous_state = current_state;
-            current_state = AppState::ProcessSelection;
-
+            enter_state(AppState::ProcessSelection);
             return switch_to_view(ViewProcessSelection);
         }
     }
@@ -381,26 +373,24 @@ private:
             get_event_name(event),
             get_state_name(current_state));
 
-        previous_state = current_state;
-
         switch(event) {
         case FilmDeveloperEvent::ProcessSelected:
-            current_state = AppState::Settings;
+            enter_state(AppState::Settings);
             return switch_to_view(ViewSettings);
 
         case FilmDeveloperEvent::SettingsConfirmed:
             model->set_process(process_view.get_selected_process());
-            current_state = AppState::MainView;
+            enter_state(AppState::MainView);
             return switch_to_view(ViewMainDevelopment);
 
         case FilmDeveloperEvent::ProcessAborted:
-            current_state = AppState::ProcessSelection;
+            enter_state(AppState::ProcessSelection);
             return switch_to_view(ViewProcessSelection);
 
         case FilmDeveloperEvent::PauseRequested:
             if(current_state == AppState::MainView || current_state == AppState::DispatchDialog) {
                 if(model->pause_process()) {
-                    current_state = AppState::Paused;
+                    enter_state(AppState::Paused);
                     if(current_state == AppState::DispatchDialog) {
                         return switch_to_view(ViewMainDevelopment);
                     }
@@ -412,7 +402,7 @@ private:
         case FilmDeveloperEvent::ResumeRequested:
             if(current_state == AppState::Paused || current_state == AppState::DispatchDialog) {
                 if(model->resume_process()) {
-                    current_state = AppState::MainView;
+                    enter_state(AppState::MainView);
                     if(current_state == AppState::DispatchDialog) {
                         return switch_to_view(ViewMainDevelopment);
                     }
@@ -422,39 +412,39 @@ private:
             return true;
 
         case FilmDeveloperEvent::EnterRuntimeSettings:
-            current_state = AppState::RuntimeSettings;
+            enter_state(AppState::RuntimeSettings);
             return switch_to_view(ViewRuntimeSettings);
 
         case FilmDeveloperEvent::ExitRuntimeSettings:
             if(model->is_process_paused()) {
-                current_state = AppState::Paused;
+                enter_state(AppState::Paused);
                 return switch_to_view(ViewPaused);
             }
-            current_state = AppState::MainView;
+            enter_state(AppState::MainView);
             return switch_to_view(ViewMainDevelopment);
 
         case FilmDeveloperEvent::DispatchRequested:
-            current_state = AppState::DispatchDialog;
+            enter_state(AppState::DispatchDialog);
             return switch_to_view(ViewDispatchMenu);
 
         case FilmDeveloperEvent::DialogDismissed:
             if(model->is_process_paused()) {
-                current_state = AppState::Paused;
+                enter_state(AppState::Paused);
                 return switch_to_view(ViewPaused);
             }
-            current_state = AppState::MainView;
+            enter_state(AppState::MainView);
             return switch_to_view(ViewMainDevelopment);
 
         case FilmDeveloperEvent::UserActionRequired:
             if(model->wait_for_user()) {
-                current_state = AppState::WaitingConfirmation;
+                enter_state(AppState::WaitingConfirmation);
                 return switch_to_view(ViewWaitingConfirmation);
             }
             return true;
 
         case FilmDeveloperEvent::UserActionConfirmed:
             if(model->confirm_user_action()) {
-                current_state = AppState::MainView;
+                enter_state(AppState::MainView);
                 return switch_to_view(ViewMainDevelopment);
             }
             return true;
@@ -462,7 +452,7 @@ private:
         case FilmDeveloperEvent::RestartStep:
             if(current_state == AppState::MainView || current_state == AppState::Paused ||
                current_state == AppState::DispatchDialog) {
-                current_state = AppState::ConfirmRestart;
+                enter_state(AppState::ConfirmRestart);
                 dialog_view.show_dialog(ConfirmationDialogView::DialogType::StepRestart);
                 return switch_to_view(ViewConfirmationDialog);
             }
@@ -471,7 +461,7 @@ private:
         case FilmDeveloperEvent::SkipStep:
             if(current_state == AppState::MainView || current_state == AppState::Paused ||
                current_state == AppState::DispatchDialog) {
-                current_state = AppState::ConfirmSkip;
+                enter_state(AppState::ConfirmSkip);
                 dialog_view.show_dialog(ConfirmationDialogView::DialogType::StepSkip);
                 return switch_to_view(ViewConfirmationDialog);
             }
@@ -484,7 +474,7 @@ private:
                 if(model->is_process_paused()) {
                     model->resume_process();
                 }
-                current_state = AppState::MainView;
+                enter_state(AppState::MainView);
                 return switch_to_view(ViewMainDevelopment);
             }
             case AppState::ConfirmSkip: {
@@ -492,7 +482,7 @@ private:
                 if(model->is_process_paused()) {
                     model->resume_process();
                 }
-                current_state = AppState::MainView;
+                enter_state(AppState::MainView);
                 return switch_to_view(ViewMainDevelopment);
             }
             default:
@@ -501,14 +491,14 @@ private:
 
         case FilmDeveloperEvent::StartProcess:
             if(model->start_process()) {
-                current_state = AppState::MainView;
+                enter_state(AppState::MainView);
                 return switch_to_view(ViewMainDevelopment);
             }
             return true;
 
         case FilmDeveloperEvent::ProcessCompleted:
             if(model->complete_process()) {
-                current_state = AppState::ProcessSelection;
+                enter_state(AppState::ProcessSelection);
                 return switch_to_view(ViewProcessSelection);
             }
             return true;
