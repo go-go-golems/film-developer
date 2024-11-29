@@ -36,14 +36,14 @@ protected:
         canvas_draw_str(canvas, 2, 24, m->step_text);
 
         // Draw status or user message
-        if(process_interpreter.isWaitingForUser()) {
+        if(m->is_waiting_for_user()) {
             canvas_draw_str(canvas, 2, 36, process_interpreter.getUserMessage());
         } else {
             canvas_draw_str(canvas, 2, 36, m->status_text);
         }
 
         // Draw movement state if not waiting for user
-        if(!process_interpreter.isWaitingForUser()) {
+        if(!m->is_waiting_for_user()) {
             canvas_draw_str(canvas, 2, 48, m->movement_text);
         }
 
@@ -61,10 +61,10 @@ protected:
         }
 
         // Draw control hint - only show OK button hint
-        if(m->process_active) {
-            if(process_interpreter.isWaitingForUser()) {
+        if(m->is_process_active()) {
+            if(m->is_waiting_for_user()) {
                 elements_button_center(canvas, "Continue");
-            } else if(m->paused) {
+            } else if(m->is_process_paused()) {
                 elements_button_center(canvas, "Resume");
             } else {
                 elements_button_center(canvas, "Menu");
@@ -80,14 +80,13 @@ protected:
         }
 
         auto m = model.lock();
-        auto process_interpreter = m->process_interpreter;
 
         switch(event->key) {
         case InputKeyOk:
-            if(!m->process_active) {
+            if(!m->is_process_active()) {
                 // Start new process
                 send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::StartProcess));
-            } else if(process_interpreter.isWaitingForUser()) {
+            } else if(m->is_waiting_for_user()) {
                 // Confirm user action
                 send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::UserActionConfirmed));
             } else {
@@ -97,21 +96,21 @@ protected:
             return true;
 
         case InputKeyBack:
-            if(m->process_active) {
+            if(m->is_process_active()) {
                 // Show abort confirmation
                 send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::ProcessAborted));
             }
             return true;
 
         case InputKeyLeft:
-            if(m->process_active) {
+            if(m->is_process_active()) {
                 // Show restart confirmation
                 send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::RestartStep));
             }
             return true;
 
         case InputKeyRight:
-            if(m->process_active) {
+            if(m->is_process_active()) {
                 // Show skip confirmation
                 send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::SkipStep));
             }

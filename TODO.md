@@ -1,3 +1,4 @@
-- [ ] Separate Running/Paused from the view states, since running process influences the state transitions
+- [ ] Separate Running/Paused/WaitingForUser from the view states, since running process influences the state transitions
 - [ ] Implement adding additional time to the current process step (which is a separate thing in the model)
 - [ ] Add developer exhaustion scaling to the process itself
+- [ ] Transition for confirmation of waiting user state

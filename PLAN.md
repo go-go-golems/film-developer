@@ -82,6 +82,17 @@ Dedicated pause screen showing:
 - Exit Process
 - Back: Return to previous view
 
+### 6. Waiting For User View (ViewCpp)
+
+Dedicated user confirmation screen showing:
+- WAITING FOR CONFIRMATION header
+- Current step information
+- Action required description
+- Control buttons:
+  - Center: Menu (opens dispatch dialog)
+  - Right: Confirm and continue
+  - Back: Exit confirmation
+
 ## View Navigation Flow
 
 ```mermaid
@@ -114,79 +125,24 @@ graph TD
     CD3 -->|Cancel| DD
 ```
 
-## State Machine
+## State Machines
 
-### States and Transitions
+### Process State Machine (Model Layer)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ProcessSelection
-    ProcessSelection --> Settings
-    Settings --> MainDevelopment
-    
-    MainDevelopment --> MainView
-    MainView --> DispatchDialog: menu button
-    
-    DispatchDialog --> MainView: back
-    DispatchDialog --> Paused: pause
-    DispatchDialog --> ConfirmRestart: restart
-    DispatchDialog --> ConfirmSkip: skip
-    DispatchDialog --> RuntimeSettings: settings
-    DispatchDialog --> ConfirmExit: exit
-    
-    Paused --> MainView: resume
-    
-    ConfirmRestart --> MainView: no
-    ConfirmRestart --> DispatchDialog: yes
-    
-    ConfirmSkip --> MainView: no
-    ConfirmSkip --> DispatchDialog: yes
-    
-    ConfirmExit --> MainView: no
-    ConfirmExit --> ProcessSelection: yes
-    
-    MainView --> WaitingConfirmation
-    WaitingConfirmation --> MainView
-    WaitingConfirmation --> RuntimeSettings
-    
-    RuntimeSettings --> MainView
-    RuntimeSettings --> DispatchDialog
-    
-    ProcessSelection --> [*]
+    [*] --> NotStarted
+    NotStarted --> Running: Start
+    Running --> Paused: Pause
+    Paused --> Running: Resume
+    Running --> WaitingForUser: UserActionNeeded
+    WaitingForUser --> Running: UserConfirmed
+    Running --> [*]: Complete
+    Paused --> [*]: Abort
+    WaitingForUser --> [*]: Abort
 ```
 
-### State Behaviors
-
-1. **MainView State**
-   - Active development process
-   - Background agitation running
-   - Timer active
-   - Can transition to: Paused, WaitingConfirmation, RuntimeSettings
-
-2. **Paused State**
-   - Process temporarily halted
-   - Timer stopped
-   - Agitation stopped
-   - Can transition to: MainView, RuntimeSettings
-
-3. **WaitingConfirmation State**
-   - Process paused for user input
-   - Timer stopped
-   - Agitation stopped
-   - Can transition to: MainView, RuntimeSettings
-
-4. **RuntimeSettings State**
-   - Overlay on current process state
-   - Process remains in previous state
-   - Can modify current step parameters
-
-5. **DispatchDialog State**
-   - Central control hub overlay
-   - Process remains in previous state
-   - Quick access to all control actions
-   - Can transition to: MainView, Paused, ConfirmRestart, ConfirmSkip, RuntimeSettings, ConfirmExit
-
-### Implementation State Machine
+### Application State Machine (Updated)
 
 ```mermaid
 stateDiagram-v2
@@ -194,39 +150,35 @@ stateDiagram-v2
     ProcessSelection --> Settings: ProcessSelected
     Settings --> MainView: SettingsConfirmed
     
-    MainView --> Paused: PauseRequested
-    Paused --> MainView: ResumeRequested
-    
-    MainView --> RuntimeSettings: EnterRuntimeSettings
-    Paused --> RuntimeSettings: EnterRuntimeSettings
-    RuntimeSettings --> MainView: ExitRuntimeSettings
-    RuntimeSettings --> Paused: ExitRuntimeSettings
+    state MainView {
+        [*] --> ShowingMainDevelopment
+        ShowingMainDevelopment --> ShowingWaitingConfirmation: ProcessState.WaitingForUser
+        ShowingWaitingConfirmation --> ShowingMainDevelopment: ProcessState.Running
+        ShowingMainDevelopment --> ShowingPaused: ProcessState.Paused
+        ShowingPaused --> ShowingMainDevelopment: ProcessState.Running
+    }
     
     MainView --> DispatchDialog: DispatchRequested
-    Paused --> DispatchDialog: DispatchRequested
     DispatchDialog --> MainView: DialogDismissed
-    DispatchDialog --> Paused: DialogDismissed
     
-    MainView --> WaitingConfirmation: UserActionRequired
-    WaitingConfirmation --> MainView: UserActionConfirmed
+    MainView --> RuntimeSettings: EnterRuntimeSettings
+    RuntimeSettings --> MainView: ExitRuntimeSettings
     
-    MainView --> ConfirmRestart: RestartStep
-    Paused --> ConfirmRestart: RestartStep
-    ConfirmRestart --> MainView: DialogConfirmed
+    MainView --> ConfirmRestart: RestartRequested
+    ConfirmRestart --> MainView: DialogDismissed
     
-    MainView --> ConfirmSkip: SkipStep
-    Paused --> ConfirmSkip: SkipStep
-    ConfirmSkip --> MainView: DialogConfirmed
+    MainView --> ConfirmSkip: SkipRequested
+    ConfirmSkip --> MainView: DialogDismissed
     
-    MainView --> ConfirmExit: Back pressed
+    MainView --> ConfirmExit: ExitRequested
     ConfirmExit --> ProcessSelection: DialogConfirmed
     ConfirmExit --> MainView: DialogDismissed
     
     MainView --> ProcessSelection: ProcessCompleted
-    ProcessSelection --> [*]: Back pressed
+    ProcessSelection --> [*]: Exit
 ```
 
-### View Navigation with Events
+### View Navigation with Process States
 
 ```mermaid
 stateDiagram-v2
@@ -234,26 +186,54 @@ stateDiagram-v2
     ViewProcessSelection --> ViewSettings: ProcessSelected
     ViewSettings --> ViewMainDevelopment: SettingsConfirmed
     
-    ViewMainDevelopment --> ViewRuntimeSettings: EnterRuntimeSettings
-    ViewRuntimeSettings --> ViewMainDevelopment: ExitRuntimeSettings
+    state ViewMainDevelopment {
+        [*] --> ShowingMain
+        ShowingMain --> ShowingWaitingUser: ProcessState.WaitingForUser
+        ShowingWaitingUser --> ShowingMain: ProcessState.Running
+        ShowingMain --> ShowingPaused: ProcessState.Paused
+        ShowingPaused --> ShowingMain: ProcessState.Running
+    }
     
     ViewMainDevelopment --> ViewDispatchMenu: DispatchRequested
     ViewDispatchMenu --> ViewMainDevelopment: DialogDismissed
     
-    ViewMainDevelopment --> ViewConfirmationDialog: UserActionRequired
-    ViewConfirmationDialog --> ViewMainDevelopment: UserActionConfirmed
+    ViewMainDevelopment --> ViewRuntimeSettings: EnterRuntimeSettings
+    ViewRuntimeSettings --> ViewMainDevelopment: ExitRuntimeSettings
     
-    ViewMainDevelopment --> ViewConfirmationDialog: RestartStep
-    ViewMainDevelopment --> ViewConfirmationDialog: SkipStep
-    ViewConfirmationDialog --> ViewMainDevelopment: DialogConfirmed
+    ViewMainDevelopment --> ViewConfirmationDialog: RestartRequested
+    ViewMainDevelopment --> ViewConfirmationDialog: SkipRequested
+    ViewConfirmationDialog --> ViewMainDevelopment: DialogDismissed
     
-    ViewMainDevelopment --> ViewConfirmationDialog: Back pressed
+    ViewMainDevelopment --> ViewConfirmationDialog: ExitRequested
     ViewConfirmationDialog --> ViewProcessSelection: DialogConfirmed
     ViewConfirmationDialog --> ViewMainDevelopment: DialogDismissed
     
     ViewMainDevelopment --> ViewProcessSelection: ProcessCompleted
-    ViewProcessSelection --> [*]: Back pressed
+    ViewProcessSelection --> [*]: Exit
 ```
+
+## View-State-Process Mapping
+
+| View ID | Application State | Valid Process States |
+|---------|------------------|---------------------|
+| ViewProcessSelection | ProcessSelection | NotStarted |
+| ViewSettings | Settings | NotStarted |
+| ViewMainDevelopment | ShowingMainDevelopment | Running |
+| ViewPaused | ShowingPaused | Paused |
+| ViewWaitingConfirmation | ShowingWaitingConfirmation | WaitingForUser |
+| ViewConfirmationDialog | ConfirmRestart/ConfirmSkip/ConfirmExit | Any |
+| ViewDispatchMenu | DispatchDialog | Any |
+| ViewRuntimeSettings | RuntimeSettings | Any |
+
+## Button Behavior Matrix
+
+| View | Process State | Center Button | Right Button | Left Button | Back Button |
+|------|--------------|---------------|--------------|-------------|-------------|
+| Main | Running | Dispatch Menu | Skip Step | Restart Step | Exit Confirm |
+| Main | Paused | Dispatch Menu | Resume | Settings | Exit Confirm |
+| Main | WaitingForUser | Dispatch Menu | Confirm | - | Exit Confirm |
+| Paused | Paused | Dispatch Menu | Resume | Settings | Exit Confirm |
+| WaitingConfirmation | WaitingForUser | Dispatch Menu | Confirm | - | Exit Confirm |
 
 ## View-State Mapping
 
