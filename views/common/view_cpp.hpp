@@ -19,11 +19,11 @@ private:
 public:
   ModelHandle(View *v, bool update = true) : view(v), should_update(update) {
     model = static_cast<T *>(view_get_model(v));
-    FURI_LOG_D("ModelHandle", "ModelHandle created for view: %p", view);
+    FURI_LOG_T("ModelHandle", "ModelHandle created for view: %p", view);
   }
 
   ~ModelHandle() {
-    FURI_LOG_D("ModelHandle", "ModelHandle destroyed for view: %p", view);
+    FURI_LOG_T("ModelHandle", "ModelHandle destroyed for view: %p", view);
     view_commit_model(view, should_update);
   }
 

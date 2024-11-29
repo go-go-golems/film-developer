@@ -20,7 +20,11 @@ Primary interface showing:
 - Status/timer information
 - Movement state
 - Pin states
-- Control buttons
+- Control buttons:
+  - Center: Menu
+  - Back: Exit confirmation
+  - Left: Restart step
+  - Right: Skip step
 
 ### 2. Process Selection View (SubMenuCpp)
 
@@ -29,6 +33,7 @@ Simple menu with:
 - C41 Color Process
 - B&W Process
 - E6 Process
+- Back: Exit app
 
 ### 3. Settings View (VariableItemListCpp)
 
@@ -40,202 +45,74 @@ Single scrollable list with adjustable parameters:
 - Roll Count (1-100)
   - Default: "1"
   - Long press left/right for faster adjustment
+- Confirm: Start process
+- Back: Return to process selection
 
-### 4. Dialog System (DialogExCpp)
+### 4. Paused View (ViewCpp)
 
-Multiple dialog types for different scenarios:
+Dedicated pause screen showing:
 
-#### a. Confirmation Dialog
+- PAUSED header
+- Current step information
+- Elapsed time
+- Control buttons:
+  - Center: Menu
+  - Right: Resume
+  - Left: Settings
+  - Back: Exit confirmation
+
+### 5. Dialog System
+
+#### a. Confirmation Dialog (DialogExCpp)
 - Process start/abort confirmation
 - Step completion requiring user intervention
 - Exit confirmation during active process
+- Step restart confirmation
+- Step skip confirmation
 
-#### b. Runtime Settings Dialog
+#### b. Runtime Settings Dialog (ViewCpp)
 - Adjust current step duration
-- Skip current step option
-- Restart current step option
-- Accessible during active development
+- Back: Return to previous view
 
-#### c. Pause Dialog
-- Resume process option
-- Access to runtime settings
-- Exit process option (with confirmation)
+#### c. Dispatch Menu (SubMenuCpp)
+- Pause/Resume process
+- Runtime Settings
+- Restart Step
+- Skip Step
+- Exit Process
+- Back: Return to previous view
 
-#### d. Wait For Confirmation Dialog
-- Continue process option
-- Access to runtime settings
-- Required user action description
-
-#### e. Dispatch Dialog
-- Central hub for process control actions
-- Accessible from main development screen
-- Options:
-  - Pause process
-  - Restart current step
-  - Skip current step
-  - Runtime settings
-  - Exit process
-
-## Navigation Flow
+## View Navigation Flow
 
 ```mermaid
 graph TD
-    A[Process Selection View] -->|Select Process| B[Settings View]
-    B -->|Confirm Settings| C[Main Development View]
-    C -->|Back| A
-    C -->|User Action Needed| D[Confirmation Dialog]
-    D -->|Confirm| C
-    C -->|Abort| D
-    D -->|Cancel| C
-    D -->|Confirm Abort| A
+    PS[Process Selection View] -->|Select Process| S[Settings View]
+    S -->|Confirm Settings| MD[Main Development View]
+    MD -->|Menu| DD[Dispatch Menu]
+    MD -->|Back| CD1[Confirmation Dialog]
+    MD -->|Pause| PV[Paused View]
+    
+    PV -->|Menu| DD
+    PV -->|Resume| MD
+    PV -->|Settings| RS[Runtime Settings]
+    PV -->|Back| CD1
+    
+    DD -->|Back| MD
+    DD -->|Pause| PV
+    DD -->|Settings| RS
+    DD -->|Restart| CD2[Confirmation Dialog]
+    DD -->|Skip| CD3[Confirmation Dialog]
+    DD -->|Exit| CD1
+    
+    RS -->|Back| MD
+    
+    CD1 -->|Confirm| PS
+    CD1 -->|Cancel| MD
+    CD2 -->|Confirm| MD
+    CD2 -->|Cancel| DD
+    CD3 -->|Confirm| MD
+    CD3 -->|Cancel| DD
 ```
-
-## Navigation Details
-
-1. **Application Start**
-
-   - Opens Process Selection View
-   - User selects development process
-
-2. **Process Selection → Settings**
-
-   - After process selection, transitions to settings view
-   - User adjusts push/pull and roll count in a single view
-
-3. **Settings → Main Development**
-
-   - After confirming settings (center button)
-   - Begins development process
-   - Settings are applied to process timing
-
-4. **Main Development ↔ Confirmation Dialog**
-
-   - When user intervention needed
-   - When aborting process
-   - When completing process
-
-5. **Return to Start**
-   - Via back button from main view
-   - After process completion
-   - After process abort confirmation
-
-## State Flow
-
-1. **Application Start**
-
-   - Initialize settings with defaults
-   - Create empty development state
-
-2. **Process Selection**
-
-   - Update selected process
-   - Initialize relevant process parameters
-
-3. **Settings Adjustment**
-
-   - Modify settings
-   - Calculate timing adjustments based on push/pull
-   - Handle dynamic roll count increments
-
-4. **Development Process**
-
-   - Create development state with selected process
-   - Update state through timer callbacks
-   - Handle pausing and user interventions
-
-5. **Process Completion**
-   - Clean up development state
-   - Reset to initial state
-   - Preserve last used settings
-
-## Custom Events Architecture
-
-### Event Types
-
-```cpp
-enum class FilmDeveloperEvent : uint32_t {
-    // Navigation Events
-    ProcessSelected = 0,
-    SettingsConfirmed = 1,
-    ProcessAborted = 2,
-    ProcessCompleted = 3,
-
-    // Process Control Events
-    StartProcess = 10,
-    PauseProcess = 11,
-    ResumeProcess = 12,
-
-    // User Intervention Events
-    UserActionRequired = 20,
-    UserActionConfirmed = 21,
-
-    // Timer Events
-    TimerTick = 30,
-    StepComplete = 31,
-
-    // Motor Control Events
-    MotorStateChanged = 40,
-    AgitationComplete = 41,
-
-    // Settings Events
-    PushPullChanged = 50,
-    RollCountChanged = 51,
-
-    // State Management Events
-    StateChanged = 60,
-    
-    // Runtime Control Events
-    EnterRuntimeSettings = 70,
-    ExitRuntimeSettings = 71,
-    StepDurationChanged = 72,
-    SkipStep = 73,
-    RestartStep = 74,
-    
-    // Pause Control Events
-    PauseRequested = 80,
-    ResumeRequested = 81,
-    
-    // Dialog Events
-    DialogConfirmed = 90,
-    DialogCancelled = 91,
-    DialogDismissed = 92
-};
-```
-
-### Event Flow Patterns
-
-1. **Process Selection Flow**
-
-   ```
-   ProcessSelection View -> ProcessSelected -> App -> SettingsView
-   ```
-
-2. **Settings Confirmation Flow**
-
-   ```
-   Settings View -> SettingsConfirmed -> App -> MainDevelopment View
-   ```
-
-3. **Development Control Flow**
-
-   ```
-   MainDevelopment View -> StartProcess -> App -> Process Controller
-   Process Controller -> TimerTick -> App -> MainDevelopment View (update display)
-   Process Controller -> StepComplete -> App -> MainDevelopment View (next step)
-   ```
-
-4. **User Intervention Flow**
-
-   ```
-   Process Controller -> UserActionRequired -> App -> Confirmation Dialog
-   Confirmation Dialog -> UserActionConfirmed -> App -> Process Controller
-   ```
-
-5. **Motor Control Flow**
-   ```
-   Process Controller -> MotorStateChanged -> App -> MainDevelopment View
-   Process Controller -> AgitationComplete -> App -> Process Controller
-   ```
 
 ## State Machine
 
@@ -247,32 +124,32 @@ stateDiagram-v2
     ProcessSelection --> Settings
     Settings --> MainDevelopment
     
-    MainDevelopment --> Running
-    Running --> DispatchDialog: menu button
+    MainDevelopment --> MainView
+    MainView --> DispatchDialog: menu button
     
-    DispatchDialog --> Running: back
+    DispatchDialog --> MainView: back
     DispatchDialog --> Paused: pause
     DispatchDialog --> ConfirmRestart: restart
     DispatchDialog --> ConfirmSkip: skip
     DispatchDialog --> RuntimeSettings: settings
     DispatchDialog --> ConfirmExit: exit
     
-    Paused --> Running: resume
+    Paused --> MainView: resume
     
-    ConfirmRestart --> Running: no
+    ConfirmRestart --> MainView: no
     ConfirmRestart --> DispatchDialog: yes
     
-    ConfirmSkip --> Running: no
+    ConfirmSkip --> MainView: no
     ConfirmSkip --> DispatchDialog: yes
     
-    ConfirmExit --> Running: no
+    ConfirmExit --> MainView: no
     ConfirmExit --> ProcessSelection: yes
     
-    Running --> WaitingConfirmation
-    WaitingConfirmation --> Running
+    MainView --> WaitingConfirmation
+    WaitingConfirmation --> MainView
     WaitingConfirmation --> RuntimeSettings
     
-    RuntimeSettings --> Running
+    RuntimeSettings --> MainView
     RuntimeSettings --> DispatchDialog
     
     ProcessSelection --> [*]
@@ -280,7 +157,7 @@ stateDiagram-v2
 
 ### State Behaviors
 
-1. **Running State**
+1. **MainView State**
    - Active development process
    - Background agitation running
    - Timer active
@@ -290,13 +167,13 @@ stateDiagram-v2
    - Process temporarily halted
    - Timer stopped
    - Agitation stopped
-   - Can transition to: Running, RuntimeSettings
+   - Can transition to: MainView, RuntimeSettings
 
 3. **WaitingConfirmation State**
    - Process paused for user input
    - Timer stopped
    - Agitation stopped
-   - Can transition to: Running, RuntimeSettings
+   - Can transition to: MainView, RuntimeSettings
 
 4. **RuntimeSettings State**
    - Overlay on current process state
@@ -307,7 +184,7 @@ stateDiagram-v2
    - Central control hub overlay
    - Process remains in previous state
    - Quick access to all control actions
-   - Can transition to: Running, Paused, ConfirmRestart, ConfirmSkip, RuntimeSettings, ConfirmExit
+   - Can transition to: MainView, Paused, ConfirmRestart, ConfirmSkip, RuntimeSettings, ConfirmExit
 
 ### Implementation State Machine
 
@@ -315,37 +192,37 @@ stateDiagram-v2
 stateDiagram-v2
     [*] --> ProcessSelection
     ProcessSelection --> Settings: ProcessSelected
-    Settings --> Running: SettingsConfirmed
+    Settings --> MainView: SettingsConfirmed
     
-    Running --> Paused: PauseRequested
-    Paused --> Running: ResumeRequested
+    MainView --> Paused: PauseRequested
+    Paused --> MainView: ResumeRequested
     
-    Running --> RuntimeSettings: EnterRuntimeSettings
+    MainView --> RuntimeSettings: EnterRuntimeSettings
     Paused --> RuntimeSettings: EnterRuntimeSettings
-    RuntimeSettings --> Running: ExitRuntimeSettings
+    RuntimeSettings --> MainView: ExitRuntimeSettings
     RuntimeSettings --> Paused: ExitRuntimeSettings
     
-    Running --> DispatchDialog: DispatchRequested
+    MainView --> DispatchDialog: DispatchRequested
     Paused --> DispatchDialog: DispatchRequested
-    DispatchDialog --> Running: DialogDismissed
+    DispatchDialog --> MainView: DialogDismissed
     DispatchDialog --> Paused: DialogDismissed
     
-    Running --> WaitingConfirmation: UserActionRequired
-    WaitingConfirmation --> Running: UserActionConfirmed
+    MainView --> WaitingConfirmation: UserActionRequired
+    WaitingConfirmation --> MainView: UserActionConfirmed
     
-    Running --> ConfirmRestart: RestartStep
+    MainView --> ConfirmRestart: RestartStep
     Paused --> ConfirmRestart: RestartStep
-    ConfirmRestart --> Running: DialogConfirmed
+    ConfirmRestart --> MainView: DialogConfirmed
     
-    Running --> ConfirmSkip: SkipStep
+    MainView --> ConfirmSkip: SkipStep
     Paused --> ConfirmSkip: SkipStep
-    ConfirmSkip --> Running: DialogConfirmed
+    ConfirmSkip --> MainView: DialogConfirmed
     
-    Running --> ConfirmExit: Back pressed
+    MainView --> ConfirmExit: Back pressed
     ConfirmExit --> ProcessSelection: DialogConfirmed
-    ConfirmExit --> Running: DialogDismissed
+    ConfirmExit --> MainView: DialogDismissed
     
-    Running --> ProcessSelection: ProcessCompleted
+    MainView --> ProcessSelection: ProcessCompleted
     ProcessSelection --> [*]: Back pressed
 ```
 
@@ -377,3 +254,40 @@ stateDiagram-v2
     ViewMainDevelopment --> ViewProcessSelection: ProcessCompleted
     ViewProcessSelection --> [*]: Back pressed
 ```
+
+## View-State Mapping
+
+| View ID | Associated States |
+|---------|------------------|
+| ViewProcessSelection | ProcessSelection |
+| ViewSettings | Settings |
+| ViewMainDevelopment | MainView |
+| ViewPaused | Paused |
+| ViewConfirmationDialog | WaitingConfirmation, ConfirmRestart, ConfirmSkip, ConfirmExit |
+| ViewDispatchMenu | DispatchDialog |
+| ViewRuntimeSettings | RuntimeSettings |
+
+## View Navigation Rules
+
+1. **Main Development View**
+   - Menu → Dispatch Menu
+   - Back → Exit Confirmation Dialog
+   - Left → Restart Confirmation
+   - Right → Skip Confirmation
+
+2. **Paused View**
+   - Menu → Dispatch Menu
+   - Resume → Main Development View
+   - Settings → Runtime Settings
+   - Back → Exit Confirmation Dialog
+
+3. **Dispatch Menu**
+   - Back → Previous View (Main or Paused)
+   - Actions trigger appropriate transitions
+
+4. **Runtime Settings**
+   - Back → Previous View (Main or Paused)
+
+5. **Confirmation Dialogs**
+   - Confirm → Appropriate action
+   - Cancel → Previous View

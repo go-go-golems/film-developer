@@ -20,7 +20,7 @@ private:
 
 protected:
     void draw(Canvas* canvas, void*) override {
-        FURI_LOG_D("MainView", "Drawing");
+        FURI_LOG_T("MainView", "Drawing");
         auto m = model.lock();
         auto process_interpreter = m->process_interpreter;
         auto motor_controller = m->motor_controller;
@@ -120,5 +120,18 @@ protected:
         default:
             return false;
         }
+    }
+
+    bool custom(uint32_t event) override {
+        // DO NOT REMOVE THIS!
+        // This triggers a redraw when the model is updated.
+        if(event == static_cast<uint32_t>(FilmDeveloperEvent::TimerTick)) {
+            // trigger a redraw
+            auto model = this->get_model<Model>();
+            UNUSED(model);
+            return true;
+        }
+
+        return false;
     }
 };
