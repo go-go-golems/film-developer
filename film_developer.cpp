@@ -197,10 +197,7 @@ public:
               process_interpreter->getCurrentMovementTimeElapsed()),
           static_cast<long>(process_interpreter->getCurrentMovementDuration()));
 
-      model->update_step_text(process_interpreter->getCurrentStepName());
-      model->update_status(process_interpreter->getCurrentMovementTimeElapsed(),
-                           process_interpreter->getCurrentMovementDuration());
-      model->update_movement_text(motor_controller->getDirectionString());
+      model->update();
 
       if (!still_active && process_interpreter->isComplete()) {
         model->complete_process();
@@ -488,7 +485,7 @@ private:
       return switch_to_view(ViewDispatchMenu);
 
     case FilmDeveloperEvent::RestartStep:
-      model->process_interpreter->reset();
+      model->restart_current_step();
       if (model->is_process_paused()) {
         model->resume_process();
       }

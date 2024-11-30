@@ -117,6 +117,7 @@ public:
 
     // Step management
     virtual void advanceToNextStep() = 0;
+    virtual void restartCurrentStep() = 0;
     virtual size_t getCurrentStepIndex() const = 0;
 
     // State information

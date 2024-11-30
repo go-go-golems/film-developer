@@ -69,6 +69,7 @@ public:
                get_process_state_name(process_state));
     process_interpreter->start();
     process_state = ProcessState::Running;
+    update();
     return true;
   }
 
@@ -84,6 +85,7 @@ public:
     if (motor_controller) {
       motor_controller->stop();
     }
+    update();
     return true;
   }
 
@@ -96,6 +98,7 @@ public:
     FURI_LOG_I(MODEL_TAG, "Resuming process, current state: %s",
                get_process_state_name(process_state));
     process_state = ProcessState::Running;
+    update();
     return true;
   }
 
@@ -111,6 +114,7 @@ public:
     if (motor_controller) {
       motor_controller->stop();
     }
+    update();
     return true;
   }
 
@@ -124,6 +128,7 @@ public:
     FURI_LOG_I(MODEL_TAG, "User action confirmed, current state: %s",
                get_process_state_name(process_state));
     process_state = ProcessState::Running;
+    update();
     return true;
   }
 
@@ -133,17 +138,22 @@ public:
     if (process_interpreter) {
       process_interpreter->stop();
     }
-    process_state = ProcessState::NotStarted;
+    reset_process_state();
   }
 
   bool complete_process() {
     FURI_LOG_I(MODEL_TAG, "Process completed, current state: %s",
                get_process_state_name(process_state));
-    process_state = ProcessState::NotStarted;
-    if (motor_controller) {
-      motor_controller->stop();
-    }
+    reset_process_state();
     return true;
+  }
+
+  void restart_current_step() {
+    FURI_LOG_I(MODEL_TAG, "Restarting current step");
+    if (process_interpreter) {
+      process_interpreter->restartCurrentStep();
+    }
+    update();
   }
 
   bool is_process_active() const {
@@ -188,8 +198,16 @@ public:
     snprintf(movement_text, sizeof(movement_text), "Movement: %s", direction);
   }
 
+  void update() {
+    if (process_interpreter) {
+      update_step_text(process_interpreter->getCurrentStepName());
+      update_status(process_interpreter->getCurrentMovementTimeElapsed(),
+                    process_interpreter->getCurrentMovementDuration());
+      update_movement_text(motor_controller->getDirectionString());
+    }
+  }
+
   void reset() {
-    process_state = ProcessState::NotStarted;
     push_pull_stops = 0;
     roll_count = 1;
     if (process_interpreter) {
@@ -198,6 +216,14 @@ public:
       process_interpreter->setRolls(roll_count);
     }
 
+    reset_process_state();
+
+    FURI_LOG_I(MODEL_TAG, "Model reset");
+  }
+
+  void reset_process_state() {
+    FURI_LOG_I(MODEL_TAG, "Resetting process state");
+    process_state = ProcessState::NotStarted;
     if (motor_controller) {
       motor_controller->stop();
     }
@@ -205,8 +231,6 @@ public:
     snprintf(status_text, sizeof(status_text), "Press OK to start");
     snprintf(step_text, sizeof(step_text), "Ready");
     snprintf(movement_text, sizeof(movement_text), "Movement: Idle");
-
-    FURI_LOG_I(MODEL_TAG, "Model reset");
   }
 
   // Process settings methods

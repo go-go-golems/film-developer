@@ -9,6 +9,7 @@
 - [ ] Restart timer and trigger immediate tick when complete / start / pause
   - I think this requires learning more about FreeRTOS tasks and their tick
   - We could also fake it actually, by just having the process interpreter skip
+- [ ] left restart, right skip, button pause, up menu
 
 
 ## Bugs
