@@ -13,6 +13,10 @@ enum class FilmDeveloperEvent : uint32_t {
     StartProcess = 10,
     PauseProcess = 11,
     ResumeProcess = 12,
+    SkipStep = 13,
+    RestartStep = 14,
+    StopProcess = 15,
+    ExitApp = 16,
 
     // User Intervention Events
     UserActionRequired = 20,
@@ -29,25 +33,97 @@ enum class FilmDeveloperEvent : uint32_t {
     // Settings Events
     PushPullChanged = 50,
     RollCountChanged = 51,
-    
+
     // Runtime Control Events
     EnterRuntimeSettings = 60,
     ExitRuntimeSettings = 61,
     StepDurationChanged = 62,
-    SkipStep = 63,
-    RestartStep = 64,
-    
-    // Dialog Events
-    DialogDismissed = 70,
-    DialogConfirmed = 71,
-    
+
+    // Dispatch Dialog Events
+    DispatchDialogDismissed = 70,
+    DispatchDialogConfirmed = 71,
+    DispatchDialogRequested = 90,
+
     // State Machine Events
     StateChanged = 80,
-    
-    // Dispatch Events
-    DispatchRequested = 90,
-    
+
     // Pause Control Events
     PauseRequested = 100,
-    ResumeRequested = 101
-}; 
+    ResumeRequested = 101,
+    SkipRequested = 102,
+    RestartRequested = 103,
+    ExitRequested = 104,
+    StopProcessRequested = 105,
+};
+
+inline const char* get_event_name(FilmDeveloperEvent event) {
+    switch(event) {
+    case FilmDeveloperEvent::ProcessSelected:
+        return "ProcessSelected";
+    case FilmDeveloperEvent::SettingsConfirmed:
+        return "SettingsConfirmed";
+    case FilmDeveloperEvent::ProcessAborted:
+        return "ProcessAborted";
+    case FilmDeveloperEvent::ProcessCompleted:
+        return "ProcessCompleted";
+    case FilmDeveloperEvent::StartProcess:
+        return "StartProcess";
+    case FilmDeveloperEvent::PauseProcess:
+        return "PauseProcess";
+    case FilmDeveloperEvent::ResumeProcess:
+        return "ResumeProcess";
+    case FilmDeveloperEvent::SkipStep:
+        return "SkipStep";
+    case FilmDeveloperEvent::RestartStep:
+        return "RestartStep";
+    case FilmDeveloperEvent::StopProcess:
+        return "StopProcess";
+    case FilmDeveloperEvent::ExitApp:
+        return "ExitApp";
+    case FilmDeveloperEvent::UserActionRequired:
+        return "UserActionRequired";
+    case FilmDeveloperEvent::UserActionConfirmed:
+        return "UserActionConfirmed";
+    case FilmDeveloperEvent::TimerTick:
+        return "TimerTick";
+    case FilmDeveloperEvent::StepComplete:
+        return "StepComplete";
+    case FilmDeveloperEvent::MotorStateChanged:
+        return "MotorStateChanged";
+    case FilmDeveloperEvent::AgitationComplete:
+        return "AgitationComplete";
+    case FilmDeveloperEvent::PushPullChanged:
+        return "PushPullChanged";
+    case FilmDeveloperEvent::RollCountChanged:
+        return "RollCountChanged";
+    case FilmDeveloperEvent::EnterRuntimeSettings:
+        return "EnterRuntimeSettings";
+    case FilmDeveloperEvent::ExitRuntimeSettings:
+        return "ExitRuntimeSettings";
+    case FilmDeveloperEvent::StepDurationChanged:
+        return "StepDurationChanged";
+    case FilmDeveloperEvent::StateChanged:
+        return "StateChanged";
+
+    case FilmDeveloperEvent::DispatchDialogRequested:
+        return "DispatchDialogRequested";
+    case FilmDeveloperEvent::DispatchDialogDismissed:
+        return "DispatchDialogDismissed";
+    case FilmDeveloperEvent::DispatchDialogConfirmed:
+        return "DialogConfirmed";
+    case FilmDeveloperEvent::PauseRequested:
+        return "PauseRequested";
+    case FilmDeveloperEvent::ResumeRequested:
+        return "ResumeRequested";
+    case FilmDeveloperEvent::SkipRequested:
+        return "SkipRequested";
+    case FilmDeveloperEvent::RestartRequested:
+        return "RestartRequested";
+    case FilmDeveloperEvent::ExitRequested:
+        return "ExitRequested";
+    case FilmDeveloperEvent::StopProcessRequested:
+        return "StopProcessRequested";
+    }
+
+    return "Unknown";
+}

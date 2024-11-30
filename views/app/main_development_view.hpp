@@ -1,9 +1,8 @@
 #pragma once
 
-#include "../../agitation/agitation_process_interpreter.hpp"
+#include "../../film_developer_events.hpp"
 #include "../../models/main_view_model.hpp"
 #include "../../motor_controller.hpp"
-#include "../../film_developer_events.hpp"
 #include "../common/view_cpp.hpp"
 #include <furi.h>
 #include <furi_hal_resources.h>
@@ -25,7 +24,7 @@ protected:
         auto* process_interpreter = m->process_interpreter;
         auto* motor_controller = m->motor_controller;
 
-        if (!process_interpreter || !motor_controller) {
+        if(!process_interpreter || !motor_controller) {
             return;
         }
 
@@ -34,7 +33,8 @@ protected:
 
         // Draw title
         char process_name[32];
-        process_interpreter->getProcessName(process_interpreter->getCurrentProcessIndex(), process_name, sizeof(process_name));
+        process_interpreter->getProcessName(
+            process_interpreter->getCurrentProcessIndex(), process_name, sizeof(process_name));
         canvas_draw_str(canvas, 2, 12, process_name);
 
         // Draw current step info
@@ -97,14 +97,15 @@ protected:
                 send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::UserActionConfirmed));
             } else {
                 // Show dispatch menu
-                send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::DispatchRequested));
+                send_custom_event(
+                    static_cast<uint32_t>(FilmDeveloperEvent::DispatchDialogRequested));
             }
             return true;
 
         case InputKeyBack:
             if(m->is_process_active()) {
                 // Show abort confirmation
-                send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::ProcessAborted));
+                send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::StopProcessRequested));
             }
             return true;
 
@@ -118,7 +119,7 @@ protected:
         case InputKeyRight:
             if(m->is_process_active()) {
                 // Show skip confirmation
-                send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::SkipStep));
+                send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::SkipRequested));
             }
             return true;
 
@@ -131,7 +132,7 @@ protected:
         // DO NOT REMOVE THIS!
         // This triggers a redraw when the model is updated.
         if(event == static_cast<uint32_t>(FilmDeveloperEvent::TimerTick)) {
-            // trigger a redraw
+            // trigger a redraw because when the handle is deleted, the model is committed and the view is updated
             auto model = this->get_model<Model>();
             UNUSED(model);
             return true;

@@ -43,11 +43,13 @@ public:
     void init() override;
     bool tick() override;
     void reset() override;
+    void stop() override;
     void confirm() override;
     void advanceToNextStep() override;
 
     // State information
     bool isWaitingForUser() const override;
+    bool isComplete() const override;
     const char* getUserMessage() const override;
     ProcessState getState() const override {
         return state;
@@ -128,7 +130,7 @@ private:
     CineStillStep steps[2]; // Developer and Blix
     size_t current_step_index;
     ProcessState state;
-    uint32_t step_start_time;
+    uint32_t accumulated_time_ms{0};
 
     int push_pull_stops{0};
     int roll_count{1};
@@ -139,8 +141,7 @@ private:
 inline CineStillProcessInterpreter::CineStillProcessInterpreter(MotorController* motor_controller)
     : motor_controller(motor_controller)
     , current_step_index(0)
-    , state(ProcessState::Idle)
-    , step_start_time(0) {
+    , state(ProcessState::Idle) {
     // Initialize with default times
     steps[0] = {"Developer", 0, true}; // Will be calculated
     steps[1] = {"Blix", 8 * 60 * 1000, true}; // 8 minutes
@@ -172,7 +173,7 @@ inline bool CineStillProcessInterpreter::tick() {
     }
 
     if(state == ProcessState::Idle) {
-        step_start_time = furi_get_tick();
+        accumulated_time_ms = 0;  // Reset accumulated time
         state = ProcessState::Running;
         motor_controller->clockwise(true);
         return true;
@@ -184,7 +185,10 @@ inline bool CineStillProcessInterpreter::tick() {
         return false;
     }
 
-    uint32_t elapsed = getCurrentMovementTimeElapsed();
+    // Accumulate time when running
+    accumulated_time_ms += 1000;  // Add 1 second per tick
+    
+    uint32_t elapsed = accumulated_time_ms;
     FURI_LOG_D(CINESTILL_TAG, "Elapsed time: %lu", static_cast<unsigned long>(elapsed));
     FURI_LOG_D(
         CINESTILL_TAG,
@@ -204,10 +208,14 @@ inline bool CineStillProcessInterpreter::tick() {
     return true;
 }
 
+inline void CineStillProcessInterpreter::stop() {
+    reset();
+}
+
 inline void CineStillProcessInterpreter::reset() {
     current_step_index = 0;
     state = ProcessState::Idle;
-    step_start_time = 0;
+    accumulated_time_ms = 0;  // Reset accumulated time
     motor_controller->stop();
     updateDevelopTime();
 }
@@ -231,6 +239,10 @@ inline bool CineStillProcessInterpreter::isWaitingForUser() const {
     return state == ProcessState::WaitingForUser;
 }
 
+inline bool CineStillProcessInterpreter::isComplete() const {
+    return state == ProcessState::Complete;
+}
+
 inline const char* CineStillProcessInterpreter::getUserMessage() const {
     if(current_step_index + 1 >= 2) {
         return "Process Complete";
@@ -239,7 +251,7 @@ inline const char* CineStillProcessInterpreter::getUserMessage() const {
 }
 
 inline uint32_t CineStillProcessInterpreter::getCurrentMovementTimeElapsed() const {
-    return furi_get_tick() - step_start_time;
+    return accumulated_time_ms;
 }
 
 inline uint32_t CineStillProcessInterpreter::getCurrentMovementTimeRemaining() const {

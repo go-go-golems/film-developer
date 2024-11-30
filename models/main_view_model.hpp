@@ -6,6 +6,8 @@
 #include "guard.hpp"
 #include <cstdint>
 
+#define MODEL_TAG "FilmDevModel"
+
 class Model {
 public:
   enum class ProcessState { NotStarted, Running, Paused, WaitingForUser };
@@ -59,22 +61,24 @@ public:
   // Process state transitions
   bool start_process() {
     if (process_state != ProcessState::NotStarted) {
-      FURI_LOG_W("FilmDev", "Cannot start process from state: %s",
+      FURI_LOG_W(MODEL_TAG, "Cannot start process from state: %s",
                  get_process_state_name(process_state));
       return false;
     }
-    FURI_LOG_I("FilmDev", "Starting process");
+    FURI_LOG_I(MODEL_TAG, "Starting process, current state: %s",
+               get_process_state_name(process_state));
     process_state = ProcessState::Running;
     return true;
   }
 
   bool pause_process() {
     if (process_state != ProcessState::Running) {
-      FURI_LOG_W("FilmDev", "Cannot pause process from state: %s",
+      FURI_LOG_W(MODEL_TAG, "Cannot pause process from state: %s",
                  get_process_state_name(process_state));
       return false;
     }
-    FURI_LOG_I("FilmDev", "Pausing process");
+    FURI_LOG_I(MODEL_TAG, "Pausing process, current state: %s",
+               get_process_state_name(process_state));
     process_state = ProcessState::Paused;
     if (motor_controller) {
       motor_controller->stop();
@@ -84,22 +88,24 @@ public:
 
   bool resume_process() {
     if (process_state != ProcessState::Paused) {
-      FURI_LOG_W("FilmDev", "Cannot resume process from state: %s",
+      FURI_LOG_W(MODEL_TAG, "Cannot resume process from state: %s",
                  get_process_state_name(process_state));
       return false;
     }
-    FURI_LOG_I("FilmDev", "Resuming process");
+    FURI_LOG_I(MODEL_TAG, "Resuming process, current state: %s",
+               get_process_state_name(process_state));
     process_state = ProcessState::Running;
     return true;
   }
 
   bool wait_for_user() {
     if (process_state != ProcessState::Running) {
-      FURI_LOG_W("FilmDev", "Cannot wait for user from state: %s",
+      FURI_LOG_W(MODEL_TAG, "Cannot wait for user from state: %s",
                  get_process_state_name(process_state));
       return false;
     }
-    FURI_LOG_I("FilmDev", "Waiting for user confirmation");
+    FURI_LOG_I(MODEL_TAG, "Waiting for user confirmation, current state: %s",
+               get_process_state_name(process_state));
     process_state = ProcessState::WaitingForUser;
     if (motor_controller) {
       motor_controller->stop();
@@ -109,18 +115,20 @@ public:
 
   bool confirm_user_action() {
     if (process_state != ProcessState::WaitingForUser) {
-      FURI_LOG_W("FilmDev", "Cannot confirm user action from state: %s",
+      FURI_LOG_W(MODEL_TAG, "Cannot confirm user action from state: %s",
                  get_process_state_name(process_state));
       return false;
     }
     process_interpreter->confirm();
-    FURI_LOG_I("FilmDev", "User action confirmed");
+    FURI_LOG_I(MODEL_TAG, "User action confirmed, current state: %s",
+               get_process_state_name(process_state));
     process_state = ProcessState::Running;
     return true;
   }
 
   bool complete_process() {
-    FURI_LOG_I("FilmDev", "Process completed");
+    FURI_LOG_I(MODEL_TAG, "Process completed, current state: %s",
+               get_process_state_name(process_state));
     process_state = ProcessState::NotStarted;
     if (motor_controller) {
       motor_controller->stop();
@@ -188,7 +196,7 @@ public:
     snprintf(step_text, sizeof(step_text), "Ready");
     snprintf(movement_text, sizeof(movement_text), "Movement: Idle");
 
-    FURI_LOG_I("FilmDev", "Model reset");
+    FURI_LOG_I(MODEL_TAG, "Model reset");
   }
 
   // Process settings methods

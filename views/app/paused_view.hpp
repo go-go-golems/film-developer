@@ -42,7 +42,7 @@ protected:
 
         switch(event->key) {
         case InputKeyOk:
-            send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::DispatchRequested));
+            send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::DispatchDialogRequested));
             return true;
 
         case InputKeyRight:
@@ -54,7 +54,7 @@ protected:
             return true;
 
         case InputKeyBack:
-            send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::ProcessAborted));
+            send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::StopProcessRequested));
             return true;
 
         default:
