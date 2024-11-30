@@ -30,7 +30,6 @@ public:
         update_roll_count_text(1);
 
         add_item("Confirm", 0, nullptr, nullptr);
-        add_item("Back", 0, nullptr, nullptr);
 
         // Set enter callback for confirmation
         set_enter_callback(enter_callback, this);
@@ -67,9 +66,6 @@ private:
         if(index == 2) {
             auto view = static_cast<SettingsView*>(context);
             view->send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::SettingsConfirmed));
-        } else if(index == 3) {
-            auto view = static_cast<SettingsView*>(context);
-            view->send_custom_event(static_cast<uint32_t>(FilmDeveloperEvent::ProcessAborted));
         }
     }
 

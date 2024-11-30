@@ -24,9 +24,10 @@ struct DevTimeEntry {
 };
 
 // constexpr DevTimeEntry TIME_TABLE[] = {
-//     {75.0, 35.0, 50.0, -1.0, -1.0, 27.0}, {80.0, 21.0, 28.0, 37.0, -1.0, 16.25},
-//     {85.0, 13.0, 17.0, 25.0, 35.0, 10.0}, {90.0, 8.5, 11.0, 14.75, 21.0, 6.5},
-//     {95.0, 5.75, 7.5, 10.0, 14.33, 4.5},  {102.0, 3.5, 4.55, 6.13, 8.75, 2.75}};
+//     {75.0, 35.0, 50.0, -1.0, -1.0, 27.0}, {80.0, 21.0, 28.0, 37.0,
+//     -1.0, 16.25}, {85.0, 13.0, 17.0, 25.0, 35.0, 10.0},
+//     {90.0, 8.5, 11.0, 14.75, 21.0, 6.5}, {95.0, 5.75, 7.5, 10.0, 14.33, 4.5},
+//     {102.0, 3.5, 4.55, 6.13, 8.75, 2.75}};
 
 constexpr DevTimeEntry TIME_TABLE[] = {
     {75.0, 0.2, 0.2, 0.2, 0.2, 0.1},
@@ -44,6 +45,7 @@ public:
     bool tick() override;
     void reset() override;
     void stop() override;
+    void start() override;
     void confirm() override;
     void advanceToNextStep() override;
 
@@ -168,26 +170,23 @@ inline void CineStillProcessInterpreter::updateDevelopTime() {
 
 inline bool CineStillProcessInterpreter::tick() {
     if(state == ProcessState::Complete || state == ProcessState::Error ||
-       state == ProcessState::Paused || state == ProcessState::WaitingForUser) {
+       state == ProcessState::Idle || state == ProcessState::Paused ||
+       state == ProcessState::WaitingForUser) {
+        FURI_LOG_T(
+            CINESTILL_TAG, "Ignoring tick, current state: %s", get_process_state_name(state));
         return false;
     }
 
-    if(state == ProcessState::Idle) {
-        accumulated_time_ms = 0;  // Reset accumulated time
-        state = ProcessState::Running;
-        motor_controller->clockwise(true);
-        return true;
-    }
-
     if(current_step_index >= 2) {
+        FURI_LOG_I(CINESTILL_TAG, "Process complete");
         state = ProcessState::Complete;
         motor_controller->stop();
         return false;
     }
 
     // Accumulate time when running
-    accumulated_time_ms += 1000;  // Add 1 second per tick
-    
+    accumulated_time_ms += 1000; // Add 1 second per tick
+
     uint32_t elapsed = accumulated_time_ms;
     FURI_LOG_D(CINESTILL_TAG, "Elapsed time: %lu", static_cast<unsigned long>(elapsed));
     FURI_LOG_D(
@@ -209,28 +208,42 @@ inline bool CineStillProcessInterpreter::tick() {
 }
 
 inline void CineStillProcessInterpreter::stop() {
+    FURI_LOG_I(CINESTILL_TAG, "Stopping process");
     reset();
 }
 
+inline void CineStillProcessInterpreter::start() {
+    FURI_LOG_I(CINESTILL_TAG, "Starting process");
+    state = ProcessState::Running;
+    motor_controller->clockwise(true);
+}
+
 inline void CineStillProcessInterpreter::reset() {
+    FURI_LOG_D(CINESTILL_TAG, "Resetting process");
     current_step_index = 0;
     state = ProcessState::Idle;
-    accumulated_time_ms = 0;  // Reset accumulated time
+    accumulated_time_ms = 0; // Reset accumulated time
     motor_controller->stop();
     updateDevelopTime();
 }
 
 inline void CineStillProcessInterpreter::confirm() {
     if(isWaitingForUser()) {
+        FURI_LOG_D(CINESTILL_TAG, "Confirming user action");
         advanceToNextStep();
+    } else {
+        FURI_LOG_W(CINESTILL_TAG, "Not waiting for user, ignoring confirm");
     }
 }
 
 inline void CineStillProcessInterpreter::advanceToNextStep() {
+    FURI_LOG_I(CINESTILL_TAG, "Advancing to next step");
     if(current_step_index + 1 < 2) {
+        FURI_LOG_I(CINESTILL_TAG, "Advancing to step %d", current_step_index + 1);
         current_step_index++;
-        state = ProcessState::Idle;
+        state = ProcessState::Running;
     } else {
+        FURI_LOG_I(CINESTILL_TAG, "Process complete");
         state = ProcessState::Complete;
     }
 }
@@ -244,7 +257,7 @@ inline bool CineStillProcessInterpreter::isComplete() const {
 }
 
 inline const char* CineStillProcessInterpreter::getUserMessage() const {
-    if(current_step_index + 1 >= 2) {
+    if(isComplete()) {
         return "Process Complete";
     }
     return steps[current_step_index + 1].name;
@@ -267,7 +280,7 @@ inline uint32_t CineStillProcessInterpreter::getCurrentMovementDuration() const 
 }
 
 inline const char* CineStillProcessInterpreter::getCurrentStepName() const {
-    if(current_step_index >= 2) return "Complete";
+    if(isComplete()) return "Complete";
     return steps[current_step_index].name;
 }
 

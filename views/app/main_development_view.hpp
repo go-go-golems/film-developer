@@ -8,6 +8,7 @@
 #include <furi_hal_resources.h>
 #include <gui/elements.h>
 
+#define MAIN_VIEW_TAG "MainView"
 class MainDevelopmentView : public flipper::ViewCpp {
 public:
     MainDevelopmentView(ProtectedModel& model)
@@ -19,7 +20,7 @@ private:
 
 protected:
     void draw(Canvas* canvas, void*) override {
-        FURI_LOG_T("MainView", "Drawing");
+        FURI_LOG_T(MAIN_VIEW_TAG, "Drawing");
         auto m = model.lock();
         auto* process_interpreter = m->process_interpreter;
         auto* motor_controller = m->motor_controller;
@@ -78,6 +79,7 @@ protected:
         } else {
             elements_button_center(canvas, "Start");
         }
+        FURI_LOG_T(MAIN_VIEW_TAG, "Drawing done");
     }
 
     bool input(InputEvent* event) override {
@@ -129,15 +131,25 @@ protected:
     }
 
     bool custom(uint32_t event) override {
-        // DO NOT REMOVE THIS!
-        // This triggers a redraw when the model is updated.
         if(event == static_cast<uint32_t>(FilmDeveloperEvent::TimerTick)) {
-            // trigger a redraw because when the handle is deleted, the model is committed and the view is updated
-            auto model = this->get_model<Model>();
-            UNUSED(model);
+            FURI_LOG_T(MAIN_VIEW_TAG, "Timer tick event");
+            redraw();
             return true;
         }
-
         return false;
+    }
+
+    void redraw() {
+        // DO NOT REMOVE THIS!
+        // This triggers a redraw when the model is updated.
+        // trigger a redraw because when the handle is deleted, the model is committed and the view is updated
+        auto model = this->get_model<Model>();
+        UNUSED(model);
+    }
+
+    void enter() override {
+        FURI_LOG_D(MAIN_VIEW_TAG, "Entering");
+        redraw();
+        FURI_LOG_D(MAIN_VIEW_TAG, "Entering done");
     }
 };

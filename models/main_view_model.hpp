@@ -67,6 +67,7 @@ public:
     }
     FURI_LOG_I(MODEL_TAG, "Starting process, current state: %s",
                get_process_state_name(process_state));
+    process_interpreter->start();
     process_state = ProcessState::Running;
     return true;
   }
@@ -124,6 +125,15 @@ public:
                get_process_state_name(process_state));
     process_state = ProcessState::Running;
     return true;
+  }
+
+  void stop_process() {
+    FURI_LOG_I(MODEL_TAG, "Stopping process, current state: %s",
+               get_process_state_name(process_state));
+    if (process_interpreter) {
+      process_interpreter->stop();
+    }
+    process_state = ProcessState::NotStarted;
   }
 
   bool complete_process() {

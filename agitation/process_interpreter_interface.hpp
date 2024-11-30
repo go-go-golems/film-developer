@@ -4,12 +4,12 @@
 #include <stdint.h>
 
 enum class ProcessState {
-  Idle,
-  Running,
-  Paused,
-  WaitingForUser,
-  Complete,
-  Error
+    Idle,
+    Running,
+    Paused,
+    WaitingForUser,
+    Complete,
+    Error
 };
 
 /**
@@ -81,51 +81,69 @@ enum class ProcessState {
  */
 class ProcessInterpreterInterface {
 public:
-  virtual ~ProcessInterpreterInterface() = default;
+    virtual ~ProcessInterpreterInterface() = default;
 
-  // Process list management
-  virtual size_t getProcessCount() const = 0;
-  virtual bool getProcessName(size_t index, char *buffer,
-                              size_t buffer_size) const = 0;
-  virtual bool selectProcess(const char *process_name) = 0;
-  virtual size_t getCurrentProcessIndex() const = 0;
+    static const char* get_process_state_name(ProcessState state) {
+        switch(state) {
+        case ProcessState::Idle:
+            return "Idle";
+        case ProcessState::Running:
+            return "Running";
+        case ProcessState::Paused:
+            return "Paused";
+        case ProcessState::WaitingForUser:
+            return "Waiting for user";
+        case ProcessState::Complete:
+            return "Complete";
+        case ProcessState::Error:
+            return "Error";
+        }
 
-  // Core functionality
-  virtual void init() = 0;
-  virtual bool tick() = 0;
-  virtual void reset() = 0;
-  virtual void stop() = 0;
-  virtual void confirm() = 0;
+        return "Unknown";
+    }
+    // Process list management
+    virtual size_t getProcessCount() const = 0;
+    virtual bool getProcessName(size_t index, char* buffer, size_t buffer_size) const = 0;
+    virtual bool selectProcess(const char* process_name) = 0;
+    virtual size_t getCurrentProcessIndex() const = 0;
 
-  // Step management
-  virtual void advanceToNextStep() = 0;
-  virtual size_t getCurrentStepIndex() const = 0;
+    // Core functionality
+    virtual void init() = 0;
+    virtual bool tick() = 0;
+    virtual void reset() = 0;
+    virtual void start() = 0;
+    virtual void stop() = 0;
+    virtual void confirm() = 0;
 
-  // State information
-  virtual bool isWaitingForUser() const = 0;
-  virtual bool isComplete() const = 0;
-  virtual const char *getUserMessage() const = 0;
-  virtual ProcessState getState() const = 0;
+    // Step management
+    virtual void advanceToNextStep() = 0;
+    virtual size_t getCurrentStepIndex() const = 0;
 
-  // Timing information
-  virtual uint32_t getCurrentMovementTimeRemaining() const = 0;
-  virtual uint32_t getCurrentMovementTimeElapsed() const = 0;
-  virtual uint32_t getCurrentMovementDuration() const = 0;
+    // State information
+    virtual bool isWaitingForUser() const = 0;
+    virtual bool isComplete() const = 0;
+    virtual const char* getUserMessage() const = 0;
+    virtual ProcessState getState() const = 0;
 
-  // Step information
-  virtual const char *getCurrentStepName() const = 0;
-  virtual const char *getCurrentMovementName() const = 0;
+    // Timing information
+    virtual uint32_t getCurrentMovementTimeRemaining() const = 0;
+    virtual uint32_t getCurrentMovementTimeElapsed() const = 0;
+    virtual uint32_t getCurrentMovementDuration() const = 0;
 
-  // Add these methods to the interface class
-  virtual void setProcessPushPull(int stops) = 0;
-  virtual void setRolls(int count) = 0;
-  virtual void setTemperature(float temp) = 0;
+    // Step information
+    virtual const char* getCurrentStepName() const = 0;
+    virtual const char* getCurrentMovementName() const = 0;
 
-  virtual int getProcessPushPull() const = 0;
-  virtual int getRolls() const = 0;
-  virtual float getTemperature() const = 0;
+    // Add these methods to the interface class
+    virtual void setProcessPushPull(int stops) = 0;
+    virtual void setRolls(int count) = 0;
+    virtual void setTemperature(float temp) = 0;
 
-  // Add new methods for pause/resume
-  virtual void pause() = 0;
-  virtual void resume() = 0;
+    virtual int getProcessPushPull() const = 0;
+    virtual int getRolls() const = 0;
+    virtual float getTemperature() const = 0;
+
+    // Add new methods for pause/resume
+    virtual void pause() = 0;
+    virtual void resume() = 0;
 };
