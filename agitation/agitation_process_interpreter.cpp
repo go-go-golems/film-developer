@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#define TAG_AGITATION_INTERPRETER "AgitationInterpreter"
 
 AgitationProcessInterpreter::AgitationProcessInterpreter()
     : process(&STAND_DEV_STATIC)
@@ -34,8 +33,11 @@ void AgitationProcessInterpreter::initAgitation(
     current_step_index = 0;
     process_state = ProcessState::Idle;
 
-    current_temperature = 20.0f;
+    push_pull_stops = 0;
+    roll_count = 1;
+    temperature = process->temperature;
     target_temperature = process->temperature;
+    
     movement_completed = false;
 
     sequence_length = 0;
@@ -44,12 +46,8 @@ void AgitationProcessInterpreter::initAgitation(
     FURI_LOG_I(TAG_AGITATION_INTERPRETER, "Process Interpreter Initialized:");
     FURI_LOG_I(TAG_AGITATION_INTERPRETER, "  Process Name: %s", process->process_name);
     FURI_LOG_I(TAG_AGITATION_INTERPRETER, "  Film Type: %s", process->film_type);
-    FURI_LOG_I(
-        TAG_AGITATION_INTERPRETER, "  Total Steps: %u", (unsigned int)process->steps_length);
-    FURI_LOG_I(
-        TAG_AGITATION_INTERPRETER,
-        "  Initial Temperature: %.1f",
-        static_cast<double>(target_temperature));
+    FURI_LOG_I(TAG_AGITATION_INTERPRETER, "  Total Steps: %u", (unsigned int)process->steps_length);
+    FURI_LOG_I(TAG_AGITATION_INTERPRETER, "  Initial Temperature: %.1f", static_cast<double>(target_temperature));
 }
 
 void AgitationProcessInterpreter::initializeMovementSequence(const AgitationStepStatic* step) {

@@ -13,6 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define TAG_AGITATION_INTERPRETER "AgitationInterpreter"
+
 class AgitationProcessInterpreter : public ProcessInterpreterInterface {
 public:
     AgitationProcessInterpreter();
@@ -98,6 +100,25 @@ public:
         return 0; // Default to first process if current not found
     }
 
+    void setProcessPushPull(int stops) override { 
+        push_pull_stops = stops;
+        FURI_LOG_D(TAG_AGITATION_INTERPRETER, "Set push/pull stops to %d", stops);
+    }
+    
+    void setRolls(int count) override {
+        roll_count = count;
+        FURI_LOG_D(TAG_AGITATION_INTERPRETER, "Set roll count to %d", count);
+    }
+    
+    void setTemperature(float temp) override {
+        temperature = temp;
+        FURI_LOG_D(TAG_AGITATION_INTERPRETER, "Set temperature to %.1f", static_cast<double>(temp));
+    }
+    
+    int getProcessPushPull() const override { return push_pull_stops; }
+    int getRolls() const override { return roll_count; }
+    float getTemperature() const override { return temperature; }
+
 private:
     void initializeMovementSequence(const AgitationStepStatic* step);
 
@@ -132,4 +153,8 @@ private:
         &CONTINUOUS_GENTLE_STATIC};
     static constexpr size_t PROCESS_COUNT =
         sizeof(available_processes) / sizeof(available_processes[0]);
+
+    int push_pull_stops{0};
+    int roll_count{1}; 
+    float temperature{20.0f};
 };

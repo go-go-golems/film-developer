@@ -46,6 +46,9 @@ private:
         uint8_t index = get_current_value_index(item);
         auto m = view->model.lock();
         m->push_pull_stops = index - 2; // Convert from 0-4 to -2 to +2
+        if(m->process_interpreter) {
+            m->process_interpreter->setProcessPushPull(m->push_pull_stops);
+        }
         set_current_value_text(item, Model::PUSH_PULL_VALUES[index]);
     }
 
@@ -54,6 +57,9 @@ private:
         uint8_t index = get_current_value_index(item);
         auto m = view->model.lock();
         m->roll_count = index + 1; // Convert from 0-based to 1-based
+        if(m->process_interpreter) {
+            m->process_interpreter->setRolls(m->roll_count);
+        }
         view->update_roll_count_text(index + 1);
     }
 

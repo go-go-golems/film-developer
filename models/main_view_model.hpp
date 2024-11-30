@@ -59,6 +59,8 @@ public:
         current_process = process;
         if (process_interpreter) {
             process_interpreter->selectProcess(process->process_name);
+            process_interpreter->setProcessPushPull(push_pull_stops);
+            process_interpreter->setRolls(roll_count);
         }
     }
 
@@ -192,6 +194,8 @@ public:
         current_process = &STAND_DEV_STATIC;
         if (process_interpreter) {
             process_interpreter->init();
+            process_interpreter->setProcessPushPull(push_pull_stops);
+            process_interpreter->setRolls(roll_count);
         }
 
         if(motor_controller) {
