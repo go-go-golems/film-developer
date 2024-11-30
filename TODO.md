@@ -6,15 +6,15 @@
 - [x] Add a ResumeProcess event + Resume confirmation dialog (for example when back from the paused view)
 - [ ] Add a AcknowledgeCompleted event + AcknowledgeCompleted confirmation dialog
 - [ ] Go to runtime settings from paused / user confirmation view
-- [ ] Restart timer and trigger immediate tick when complete / start / pause
+- [x] Restart timer and trigger immediate tick when complete / start / pause
   - I think this requires learning more about FreeRTOS tasks and their tick
   - We could also fake it actually, by just having the process interpreter skip
 - [ ] left restart, right skip, button pause, up menu
 
-
 ## Bugs
-- [ ] Stopping after blix and confirm didn't seem to work, might be more general
 
+- [x] Stopping after blix and confirm didn't seem to work, might be more general
+- [ ] Show runtime settings not menu from the paused screen ? Or maybe resume/restart doesn't work from the menu
 
 ## UI / pretty
 
