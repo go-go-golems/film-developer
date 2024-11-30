@@ -45,7 +45,7 @@ private:
         auto view = static_cast<SettingsView*>(get_context(item));
         uint8_t index = get_current_value_index(item);
         auto m = view->model.lock();
-        m->push_pull_stops = index - 2; // Convert from 0-4 to -2 to +2
+        m->push_pull_stops = index - 1; // Convert from 0-4 to -1 to +3
         if(m->process_interpreter) {
             m->process_interpreter->setProcessPushPull(m->push_pull_stops);
         }

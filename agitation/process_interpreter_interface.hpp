@@ -6,6 +6,8 @@
 enum class ProcessState {
     Idle,
     Running,
+    Paused,
+    WaitingForUser,
     Complete,
     Error
 };
@@ -117,4 +119,8 @@ public:
     virtual int getProcessPushPull() const = 0;
     virtual int getRolls() const = 0;
     virtual float getTemperature() const = 0;
+
+    // Add new methods for pause/resume
+    virtual void pause() = 0;
+    virtual void resume() = 0;
 };

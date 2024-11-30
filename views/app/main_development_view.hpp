@@ -33,7 +33,9 @@ protected:
         canvas_set_font(canvas, FontPrimary);
 
         // Draw title
-        canvas_draw_str(canvas, 2, 12, m->current_process->process_name);
+        char process_name[32];
+        process_interpreter->getProcessName(process_interpreter->getCurrentProcessIndex(), process_name, sizeof(process_name));
+        canvas_draw_str(canvas, 2, 12, process_name);
 
         // Draw current step info
         canvas_set_font(canvas, FontSecondary);
