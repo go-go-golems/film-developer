@@ -27,7 +27,7 @@ protected:
         canvas_draw_str(canvas, 2, 24, m->step_text);
 
         // Draw user message from process interpreter
-        const char* user_message = m->process_interpreter.getUserMessage();
+        const char* user_message = m->process_interpreter->getUserMessage();
         canvas_draw_str_aligned(canvas, 64, 36, AlignCenter, AlignCenter, user_message);
 
         // Draw elapsed time

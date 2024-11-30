@@ -48,7 +48,7 @@ public:
     static constexpr uint8_t MIN_ROLL_COUNT = 1;
     static constexpr uint8_t MAX_ROLL_COUNT = 100;
 
-    AgitationProcessInterpreter process_interpreter;
+    ProcessInterpreterInterface* process_interpreter{nullptr};
     MotorController* motor_controller{nullptr};
 
     void init() {
@@ -57,13 +57,18 @@ public:
 
     void set_process(const AgitationProcessStatic* process) {
         current_process = process;
-        process_interpreter.init(process, motor_controller);
+        if (process_interpreter) {
+            process_interpreter->selectProcess(process->process_name);
+        }
     }
 
     // Process state transitions
     bool start_process() {
         if(process_state != ProcessState::NotStarted) {
-            FURI_LOG_W("FilmDev", "Cannot start process from state: %s", get_process_state_name(process_state));
+            FURI_LOG_W(
+                "FilmDev",
+                "Cannot start process from state: %s",
+                get_process_state_name(process_state));
             return false;
         }
         FURI_LOG_I("FilmDev", "Starting process");
@@ -73,7 +78,10 @@ public:
 
     bool pause_process() {
         if(process_state != ProcessState::Running) {
-            FURI_LOG_W("FilmDev", "Cannot pause process from state: %s", get_process_state_name(process_state));
+            FURI_LOG_W(
+                "FilmDev",
+                "Cannot pause process from state: %s",
+                get_process_state_name(process_state));
             return false;
         }
         FURI_LOG_I("FilmDev", "Pausing process");
@@ -86,7 +94,10 @@ public:
 
     bool resume_process() {
         if(process_state != ProcessState::Paused) {
-            FURI_LOG_W("FilmDev", "Cannot resume process from state: %s", get_process_state_name(process_state));
+            FURI_LOG_W(
+                "FilmDev",
+                "Cannot resume process from state: %s",
+                get_process_state_name(process_state));
             return false;
         }
         FURI_LOG_I("FilmDev", "Resuming process");
@@ -96,7 +107,10 @@ public:
 
     bool wait_for_user() {
         if(process_state != ProcessState::Running) {
-            FURI_LOG_W("FilmDev", "Cannot wait for user from state: %s", get_process_state_name(process_state));
+            FURI_LOG_W(
+                "FilmDev",
+                "Cannot wait for user from state: %s",
+                get_process_state_name(process_state));
             return false;
         }
         FURI_LOG_I("FilmDev", "Waiting for user confirmation");
@@ -109,7 +123,10 @@ public:
 
     bool confirm_user_action() {
         if(process_state != ProcessState::WaitingForUser) {
-            FURI_LOG_W("FilmDev", "Cannot confirm user action from state: %s", get_process_state_name(process_state));
+            FURI_LOG_W(
+                "FilmDev",
+                "Cannot confirm user action from state: %s",
+                get_process_state_name(process_state));
             return false;
         }
         FURI_LOG_I("FilmDev", "User action confirmed");
@@ -173,7 +190,9 @@ public:
         push_pull_stops = 0;
         roll_count = 1;
         current_process = &STAND_DEV_STATIC;
-        process_interpreter.init(current_process, motor_controller);
+        if (process_interpreter) {
+            process_interpreter->init();
+        }
 
         if(motor_controller) {
             motor_controller->stop();
@@ -182,7 +201,7 @@ public:
         snprintf(status_text, sizeof(status_text), "Press OK to start");
         snprintf(step_text, sizeof(step_text), "Ready");
         snprintf(movement_text, sizeof(movement_text), "Movement: Idle");
-        
+
         FURI_LOG_I("FilmDev", "Model reset");
     }
 

@@ -11,7 +11,7 @@
 AgitationProcessInterpreter::AgitationProcessInterpreter()
     : process(&STAND_DEV_STATIC)
     , current_step_index(0)
-    , process_state(AgitationProcessState::Idle)
+    , process_state(ProcessState::Idle)
     , current_temperature(20.0f)
     , target_temperature(20.0f)
     , motor_controller(nullptr)
@@ -23,7 +23,7 @@ AgitationProcessInterpreter::AgitationProcessInterpreter()
     memset(loaded_sequence, 0, sizeof(loaded_sequence));
 }
 
-void AgitationProcessInterpreter::init(
+void AgitationProcessInterpreter::initAgitation(
     const AgitationProcessStatic* process,
     MotorController* motor_controller) {
     furi_assert(process);
@@ -32,7 +32,7 @@ void AgitationProcessInterpreter::init(
     this->process = process;
     this->motor_controller = motor_controller;
     current_step_index = 0;
-    process_state = AgitationProcessState::Idle;
+    process_state = ProcessState::Idle;
 
     current_temperature = 20.0f;
     target_temperature = process->temperature;
@@ -62,7 +62,7 @@ void AgitationProcessInterpreter::initializeMovementSequence(const AgitationStep
 
     if(sequence_length == 0) {
         FURI_LOG_E(TAG_AGITATION_INTERPRETER, "Failed to load movement sequence");
-        process_state = AgitationProcessState::Error;
+        process_state = ProcessState::Error;
         return;
     }
 
@@ -82,15 +82,13 @@ bool AgitationProcessInterpreter::tick() {
     furi_assert(process);
     furi_assert(motor_controller);
 
-    if(current_step_index >= process->steps_length ||
-       process_state == AgitationProcessState::Error) {
+    if(current_step_index >= process->steps_length || process_state == ProcessState::Error) {
         FURI_LOG_I(
             TAG_AGITATION_INTERPRETER,
             "Process %s",
-            process_state == AgitationProcessState::Error ? "Error" : "Completed");
-        process_state = process_state == AgitationProcessState::Error ?
-                            AgitationProcessState::Error :
-                            AgitationProcessState::Complete;
+            process_state == ProcessState::Error ? "Error" : "Completed");
+        process_state = process_state == ProcessState::Error ? ProcessState::Error :
+                                                               ProcessState::Complete;
         return false;
     }
 
@@ -109,8 +107,7 @@ bool AgitationProcessInterpreter::tick() {
     const AgitationStepStatic* current_step = &process->steps[current_step_index];
     target_temperature = current_step->temperature;
 
-    if(process_state == AgitationProcessState::Idle ||
-       process_state == AgitationProcessState::Complete) {
+    if(process_state == ProcessState::Idle || process_state == ProcessState::Complete) {
         FURI_LOG_I(
             TAG_AGITATION_INTERPRETER,
             "Initializing Movement Sequence for Step %u: %s",
@@ -118,7 +115,7 @@ bool AgitationProcessInterpreter::tick() {
             current_step->name ? current_step->name : "Unnamed Step");
 
         initializeMovementSequence(current_step);
-        process_state = AgitationProcessState::Running;
+        process_state = ProcessState::Running;
     }
 
     bool movement_active = false;
@@ -142,7 +139,7 @@ bool AgitationProcessInterpreter::tick() {
 }
 
 void AgitationProcessInterpreter::reset() {
-    init(process, motor_controller);
+    initAgitation(process, motor_controller);
 }
 
 void AgitationProcessInterpreter::confirm() {
@@ -169,7 +166,7 @@ void AgitationProcessInterpreter::advanceToNextStep() {
         (unsigned int)(current_step_index + 1),
         (unsigned int)process->steps_length);
     current_step_index++;
-    process_state = AgitationProcessState::Idle;
+    process_state = ProcessState::Idle;
     sequence_length = 0;
     current_movement_index = 0;
 
@@ -179,10 +176,6 @@ void AgitationProcessInterpreter::advanceToNextStep() {
             loaded_sequence[i]->reset();
         }
     }
-}
-
-void AgitationProcessInterpreter::skipToNextStep() {
-    advanceToNextStep();
 }
 
 uint32_t AgitationProcessInterpreter::getCurrentMovementTimeRemaining() const {

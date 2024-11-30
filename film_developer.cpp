@@ -1,11 +1,11 @@
 #include "models/main_view_model.hpp"
 #include "views/app/confirmation_dialog_view.hpp"
-#include "views/app/main_development_view.hpp"
-#include "views/app/process_selection_view.hpp"
-#include "views/app/settings_view.hpp"
 #include "views/app/dispatch_menu_view.hpp"
-#include "views/app/runtime_settings_view.hpp"
+#include "views/app/main_development_view.hpp"
 #include "views/app/paused_view.hpp"
+#include "views/app/process_selection_view.hpp"
+#include "views/app/runtime_settings_view.hpp"
+#include "views/app/settings_view.hpp"
 #include "views/app/waiting_confirmation_view.hpp"
 #ifndef HOST
 #include "embedded/motor_controller_embedded.hpp"
@@ -143,7 +143,8 @@ public:
 #else
               new MotorControllerEmbedded()
 #endif
-          ) {
+                  )
+        , process_interpreter(new AgitationProcessInterpreter()) {
         gui = static_cast<Gui*>(furi_record_open(RECORD_GUI));
         view_dispatcher = view_dispatcher_alloc();
         view_dispatcher_attach_to_gui(view_dispatcher, gui, ViewDispatcherTypeFullscreen);
@@ -158,21 +159,25 @@ public:
 
         auto model = this->model.lock();
         model->motor_controller = motor_controller;
+
+        process_interpreter->initAgitation(model->current_process, motor_controller);
+        model->process_interpreter = process_interpreter;
         model->init();
     }
 
     ~FilmDeveloperApp() {
-#ifndef HOST
-        static_cast<MotorControllerEmbedded*>(motor_controller)->deinitGpio();
-#endif
-        delete motor_controller;
-
         if(view_dispatcher != nullptr) {
             for(size_t i = 0; i < ViewCount; i++) {
                 view_dispatcher_remove_view(view_dispatcher, static_cast<ViewId>(i));
             }
             view_dispatcher_free(view_dispatcher);
             furi_record_close(RECORD_GUI);
+
+            delete process_interpreter;
+            delete motor_controller;
+#ifndef HOST
+            static_cast<MotorControllerEmbedded*>(motor_controller)->deinitGpio();
+#endif
         }
     }
 
@@ -222,23 +227,23 @@ public:
     void update() {
         auto model = this->model.lock();
         if(model->is_process_active() && !model->is_process_paused()) {
-            auto& process_interpreter = model->process_interpreter;
-            bool still_active = process_interpreter.tick();
+            auto* process_interpreter = model->process_interpreter;
+            bool still_active = process_interpreter->tick();
 
             FURI_LOG_T(
                 "FilmDev",
                 "Process tick - Step: %d, Time: %ld/%ld",
-                process_interpreter.getCurrentStepIndex(),
-                process_interpreter.getCurrentMovementTimeElapsed(),
-                process_interpreter.getCurrentMovementDuration());
+                process_interpreter->getCurrentStepIndex(),
+                static_cast<long>(process_interpreter->getCurrentMovementTimeElapsed()),
+                static_cast<long>(process_interpreter->getCurrentMovementDuration()));
 
             const AgitationStepStatic* current_step =
-                &model->current_process->steps[process_interpreter.getCurrentStepIndex()];
+                &model->current_process->steps[process_interpreter->getCurrentStepIndex()];
 
             model->update_step_text(current_step->name);
             model->update_status(
-                process_interpreter.getCurrentMovementTimeElapsed(),
-                process_interpreter.getCurrentMovementDuration());
+                process_interpreter->getCurrentMovementTimeElapsed(),
+                process_interpreter->getCurrentMovementDuration());
             model->update_movement_text(motor_controller->getDirectionString());
 
             if(!still_active) {
@@ -260,6 +265,7 @@ private:
 
     ProtectedModel model;
     MotorController* motor_controller{nullptr};
+    AgitationProcessInterpreter* process_interpreter{nullptr};
 
     // Views
     MainDevelopmentView main_view{model};
@@ -290,7 +296,7 @@ private:
             "State transition: %s -> %s",
             get_state_name(current_state),
             get_state_name(new_state));
-            
+
         previous_state = current_state;
         current_state = new_state;
     }
@@ -470,7 +476,7 @@ private:
         case FilmDeveloperEvent::DialogConfirmed:
             switch(current_state) {
             case AppState::ConfirmRestart: {
-                model->process_interpreter.reset();
+                model->process_interpreter->reset();
                 if(model->is_process_paused()) {
                     model->resume_process();
                 }
@@ -478,7 +484,7 @@ private:
                 return switch_to_view(ViewMainDevelopment);
             }
             case AppState::ConfirmSkip: {
-                model->process_interpreter.skipToNextStep();
+                model->process_interpreter->advanceToNextStep();
                 if(model->is_process_paused()) {
                     model->resume_process();
                 }

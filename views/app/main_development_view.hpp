@@ -22,8 +22,12 @@ protected:
     void draw(Canvas* canvas, void*) override {
         FURI_LOG_T("MainView", "Drawing");
         auto m = model.lock();
-        auto process_interpreter = m->process_interpreter;
-        auto motor_controller = m->motor_controller;
+        auto* process_interpreter = m->process_interpreter;
+        auto* motor_controller = m->motor_controller;
+
+        if (!process_interpreter || !motor_controller) {
+            return;
+        }
 
         canvas_clear(canvas);
         canvas_set_font(canvas, FontPrimary);
@@ -37,7 +41,7 @@ protected:
 
         // Draw status or user message
         if(m->is_waiting_for_user()) {
-            canvas_draw_str(canvas, 2, 36, process_interpreter.getUserMessage());
+            canvas_draw_str(canvas, 2, 36, process_interpreter->getUserMessage());
         } else {
             canvas_draw_str(canvas, 2, 36, m->status_text);
         }
